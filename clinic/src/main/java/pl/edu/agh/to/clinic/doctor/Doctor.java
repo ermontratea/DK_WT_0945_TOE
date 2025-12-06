@@ -1,20 +1,35 @@
 package pl.edu.agh.to.clinic.doctor;
 
+import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.persistence.*;
 
 @Entity
 public class Doctor {
+
+    public static class Views{
+        public interface List{}
+        public interface Details extends List{}
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonView({Views.List.class, Views.Details.class})
     private String firstName;
+
+    @JsonView({Views.List.class, Views.Details.class})
     private String lastName;
 
     @Column(unique = true, nullable = false)
     private String pesel;
 
+    @Enumerated(EnumType.STRING)
+    @JsonView({Views.List.class, Views.Details.class})
     private Specialization specialization;
+
+
+    @JsonView({Views.Details.class})
     private String address;
 
     protected Doctor() {}

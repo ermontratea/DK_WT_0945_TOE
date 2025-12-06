@@ -1,5 +1,6 @@
 package pl.edu.agh.to.clinic.doctor;
 
+import com.fasterxml.jackson.annotation.JsonView;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,11 +20,13 @@ public class DoctorController {
     }
 
     @GetMapping
+    @JsonView(Doctor.Views.List.class)
     public List<Doctor> getDoctors() {
         return doctorService.getDoctors();
     }
 
     @GetMapping("{id}")
+    @JsonView(Doctor.Views.Details.class)
     public Doctor getDoctorById(@PathVariable Long id) {
         return doctorService.getDoctorById(id);
     }
@@ -32,5 +35,4 @@ public class DoctorController {
     public void deleteDoctorById(@PathVariable Long id) {
         doctorService.deleteDoctorById(id);
     }
-
 }

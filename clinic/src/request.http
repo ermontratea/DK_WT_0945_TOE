@@ -1,0 +1,89 @@
+### Add doctor
+POST http://localhost:8080/doctors
+Content-Type: application/json
+
+{
+  "firstName": "Anna",
+  "lastName": "Nowak",
+  "pesel": "00000000000",
+  "specialization": "CARDIOLOGY",
+  "address": "A 1"
+}
+
+### Add doctor 2
+POST http://localhost:8080/doctors
+Content-Type: application/json
+
+{
+  "firstName": "Jan",
+  "lastName": "Kowalski",
+  "pesel": "11111111111",
+  "specialization": "CARDIOLOGY",
+  "address": "B 1"
+}
+
+### Add doctor 3
+POST http://localhost:8080/doctors
+Content-Type: application/json
+
+{
+  "firstName": "Marta",
+  "lastName": "Zielińska",
+  "pesel": "22222222222",
+  "specialization": "CARDIOLOGY",
+  "address": "C 1"
+}
+
+### Add doctor 4
+POST http://localhost:8080/doctors
+Content-Type: application/json
+
+{
+  "firstName": "Tomasz",
+  "lastName": "Nowak",
+  "pesel": "33333333333",
+  "specialization": "DERMATOLOGY",
+  "address": "D 1"
+}
+
+### Add doctor 5
+POST http://localhost:8080/doctors
+Content-Type: application/json
+
+{
+  "firstName": "Mateusz",
+  "lastName": "Wiśniewski",
+  "pesel": "44444444444",
+  "specialization": "DERMATOLOGY",
+  "address": "E 1"
+}
+
+### Add doctor 6
+POST http://localhost:8080/doctors
+Content-Type: application/json
+
+{
+  "firstName": "Andrzej",
+  "lastName": "Dąb",
+  "pesel": "55555555555",
+  "specialization": "ORTHOPEDICS",
+  "address": "F 1"
+}
+
+### Add doctor 7
+POST http://localhost:8080/doctors
+Content-Type: application/json
+
+{
+  "firstName": "Karolina",
+  "lastName": "Kamień",
+  "pesel": "66666666666",
+  "specialization": "PEDIATRICS",
+  "address": "G 1"
+}
+
+### List doctors
+GET http://localhost:8080/doctors
+
+### Doctor details
+GET http://localhost:8080/doctors/1
