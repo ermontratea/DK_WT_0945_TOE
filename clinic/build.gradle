@@ -1,12 +1,16 @@
 plugins {
     id 'java'
+    id 'application'
     id 'org.springframework.boot' version '3.5.8'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+
 }
 
 group = 'pl.edu.agh.to'
 version = '0.0.1-SNAPSHOT'
 description = 'clinic'
+//apply plugin: 'org.openjfx.javafxplugin'
 
 java {
     toolchain {
@@ -19,6 +23,12 @@ repositories {
 }
 
 dependencies {
+    implementation 'org.openjfx:javafx-controls:22'
+    implementation 'org.openjfx:javafx-fxml:22'
+}
+
+dependencies {
+
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     runtimeOnly 'com.h2database:h2'
@@ -29,3 +39,10 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+//javafx {
+//    version='22'
+//    modules = ['javafx.controls', 'javafx.fxml']
+//}
+//application {
+//    mainClass = 'pl.edu.agh.to.clinic.app.ClinicApplicationFX'
+//}

@@ -1,9 +1,11 @@
 package pl.edu.agh.to.clinic.doctor;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.persistence.*;
 
 @Entity
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Doctor {
 
     public static class Views{
@@ -13,6 +15,7 @@ public class Doctor {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonView({Views.List.class,Views.Details.class})
     private Long id;
 
     @JsonView({Views.List.class, Views.Details.class})
@@ -48,6 +51,10 @@ public class Doctor {
     public String getPesel() {return pesel;}
     public Specialization getSpecialization() {return specialization;}
     public String getAddress() {return address;}
+    @Override
+    public String toString() {
+        return firstName + " " + lastName;
+    }
 
     public void setFirstName(String firstName) {this.firstName = firstName;}
     public void setLastName(String lastName) {this.lastName = lastName;}
