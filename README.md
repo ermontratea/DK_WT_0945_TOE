@@ -30,9 +30,30 @@ Content-Type: application/json
 ## Frontend Access
 Run the backend first by running `ClinicApplication.java`. Then run `ClinicApplicationFX.java`.
 
-If it doesn’t work, you can also run the app using Gradle from the IDE:
+If it doesn’t work, you can also run the app using Gradle from IntelliJ:
 - Open the Gradle panel
 - Go to `clinic -> Tasks -> application`
 - Run `run`
 
-![Run ClinicApplicationFX via Gradle](runClinicAppFx.png)
+![Run ClinicApplicationFX via Gradle](photos/runClinicAppFx.png)
+
+### Application Preview & Features
+After launching the application, the window should look like this:
+
+![App after launch](photos/appAfterLaunch.png)
+
+- Button **ADD DOCTOR** - ...
+
+- Button **ADD DOCTORS** – adds **7 sample doctors** to the database:
+  **3** with one specialization, **2** with another, **1** with a third, and **1** with a fourth.
+  After clicking this button, the doctors list and database should be filled with example records.
+
+![App after adding sample doctors](photos/appWithData.png)
+
+- When you click a doctor in the list, the application displays that doctor’s details in the bottom section of the window.
+
+![Doctor details preview](photos/doctorDetails.png)
+
+- Button **DELETE SELECTED DOCTOR** – removes the currently selected doctor from the list/database.
+
+- Button **DELETE ALL DOCTORS** – removes all doctors from the list/database.
