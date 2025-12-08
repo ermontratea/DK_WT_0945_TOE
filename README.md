@@ -37,12 +37,13 @@ If it doesn’t work, you can also run the app using Gradle from IntelliJ:
 
 ![Run ClinicApplicationFX via Gradle](photos/runClinicAppFx.png)
 
-### Application Preview & Features
+### 
+
 After launching the application, the window should look like this:
 
 ![App after launch](photos/appAfterLaunch.png)
 
-- Button **ADD DOCTOR** - ...
+- Form and button **ADD DOCTOR** - to add new doctor: fill all information, select specialization and click **ADD DOCTOR**
 
 - Button **ADD DOCTORS** – adds **7 sample doctors** to the database:
   **3** with one specialization, **2** with another, **1** with a third, and **1** with a fourth.
