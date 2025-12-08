@@ -12,7 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @AutoConfigureTestDatabase
 @Transactional
 class DoctorServiceTest {
-
+    @Autowired
+    private DoctorRepository doctorRepository;
 
     @Autowired
     private DoctorService doctorService;
@@ -56,5 +57,15 @@ class DoctorServiceTest {
                 () -> doctorService.getDoctorById(999L));
 
         assertEquals("Doctor with id: 999 not found", exception.getMessage());
+    }
+
+    @Test
+    void shouldDeleteDoctorSuccessfully() {
+        Doctor doc = new Doctor("Jan", "Kowalski", "12345678901", Specialization.CARDIOLOGY, "Kraków");
+        doctorService.addDoctor(doc);
+
+        doctorService.deleteDoctorById(doc.getId());
+
+        assertFalse(doctorRepository.findById(doc.getId()).isPresent());
     }
 }
