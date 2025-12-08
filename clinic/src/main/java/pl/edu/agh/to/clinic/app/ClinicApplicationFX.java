@@ -1,7 +1,9 @@
 package pl.edu.agh.to.clinic.app;
 
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import pl.edu.agh.to.clinic.doctor.Doctor;
@@ -21,10 +23,59 @@ public class ClinicApplicationFX extends Application{
         // VERTICAL LAYOUT
         VBox root=new VBox(10);
 
+        VBox addDoctorBox=new VBox(5);
+        TextField firstNameField=new TextField();
+        firstNameField.setPromptText("First name");
+        TextField lastNameField=new TextField();
+        lastNameField.setPromptText("Last name");
+        TextField peselField=new TextField();
+        peselField.setPromptText("PESEL ");
+
+        ComboBox<Specialization> specializationBox=new ComboBox<>();
+        specializationBox.getItems().addAll(Specialization.values());
+        specializationBox.setPromptText("Specialization");
+
+        TextField addressField=new TextField();
+        addressField.setPromptText("Address");
+
+        Button addDoctorBtn=new Button("ADD DOCTOR");
+
+        addDoctorBtn.setOnAction(e->{
+            try {
+                Doctor doctor = new Doctor(
+                        firstNameField.getText(),
+                        lastNameField.getText(),
+                        peselField.getText(),
+                        specializationBox.getValue(),
+                        addressField.getText()
+                );
+                api.addDoctor(doctor);
+
+                textArea.setText("Doctor added successfully!");
+                loadDoctors();
+            }catch (Exception ex){
+                textArea.setText("Error adding doctor: " + ex.getMessage());
+            }
+        });
+
+        addDoctorBox.getChildren().addAll(
+                firstNameField,
+                lastNameField,
+                peselField,
+                specializationBox,
+                addressField,
+                addDoctorBtn
+        );
+        addDoctorBox.setPadding(new Insets(20,20,20,20));
+        TitledPane addDoctorPane=new TitledPane("Enter doctor information", addDoctorBox);
+        addDoctorPane.setCollapsible(false);
+
+        root.getChildren().addAll(addDoctorPane);
+
         // ADD DOCTOR BUTTON
         Button addDoctorsBtn=new Button("ADD DOCTORS");
         addDoctorsBtn.setOnAction(e->addDoctors());
-        root.getChildren().add(0, addDoctorsBtn);
+        root.getChildren().add(addDoctorsBtn);
 
         // DELETE SELECTED DOCTOR BUTTON
         Button deleteSelectedDoctorBtn=new Button("DELETE SELECTED DOCTOR");
