@@ -1,22 +1,60 @@
 package pl.edu.agh.to.clinic.doctor;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
 
+@SpringBootTest
+@AutoConfigureTestDatabase
+@Transactional
 class DoctorServiceTest {
 
-    DoctorRepository repo = mock(DoctorRepository.class);
-    DoctorService service = new DoctorService(repo);
+
+    @Autowired
+    private DoctorService doctorService;
+
+    @Test
+    void shouldAddDoctorSuccessfully() {
+        Doctor doc = new Doctor("Jan", "Kowalski", "12345678901", Specialization.CARDIOLOGY, "Kraków");
+
+        Doctor saved = doctorService.addDoctor(doc);
+
+        assertNotNull(saved.getId());
+        assertEquals("Jan", saved.getFirstName());
+    }
 
     @Test
     void shouldThrowIfPeselExists() {
         Doctor doc = new Doctor("Jan", "Kowalski", "12345678901", Specialization.CARDIOLOGY, "Kraków");
-        when(repo.existsByPesel("12345678901")).thenReturn(true);
+        doctorService.addDoctor(doc);
 
-        assertThrows(IllegalArgumentException.class, () -> service.addDoctor(doc));
+        Doctor duplicate = new Doctor("Jan", "Kowalski", "12345678901", Specialization.CARDIOLOGY, "Kraków");
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> doctorService.addDoctor(duplicate));
+
+        assertEquals("Doctor with this pesel already exists", exception.getMessage());
+    }
+
+    @Test
+    void shouldGetDoctorByIdSuccessfully() {
+        Doctor doc = new Doctor("Anna", "Nowak", "11111111111", Specialization.DERMATOLOGY, "Warszawa");
+        Doctor saved = doctorService.addDoctor(doc);
+
+        Doctor found = doctorService.getDoctorById(saved.getId());
+
+        assertEquals("Anna", found.getFirstName());
+    }
+
+    @Test
+    void shouldThrowIfDoctorNotFound() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> doctorService.getDoctorById(999L));
+
+        assertEquals("Doctor with id: 999 not found", exception.getMessage());
     }
 }
-
