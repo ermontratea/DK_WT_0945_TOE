@@ -87,3 +87,6 @@ GET http://localhost:8080/doctors
 
 ### Doctor details
 GET http://localhost:8080/doctors/1
+
+### Delete doctor
+DELETE http://localhost:8080/doctors/1
