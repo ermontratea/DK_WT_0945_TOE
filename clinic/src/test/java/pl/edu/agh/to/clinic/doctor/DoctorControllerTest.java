@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.MediaType;
+import static org.hamcrest.Matchers.*;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -40,24 +41,19 @@ class DoctorControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.firstName").value("Jan"))
-                .andExpect(jsonPath("$.pesel").value("12345678901"));
+                .andExpect(jsonPath("$.lastName").value("Kowalski"))
+                .andExpect(jsonPath("$.pesel").value("12345678901"))
+                .andExpect(jsonPath("$.specialization").value("CARDIOLOGY"))
+                .andExpect(jsonPath("$.address").value("Kraków"));
     }
 
-    @Test
-    void shouldGetDoctorById() throws Exception {
-        Doctor doc = new Doctor("Anna", "Nowak", "11111111111", Specialization.DERMATOLOGY, "Warszawa");
-        doctorRepository.save(doc);
-
-        mockMvc.perform(get("/doctors/" + doc.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.lastName").value("Nowak"));
-    }
 
     @Test
     void shouldReturnErrorWhenPeselExists() throws Exception {
         Doctor doc = new Doctor("Jan", "Nowak", "12345678901", Specialization.CARDIOLOGY, "Warszawa");
-        doctorRepository.save(doc);
+        doctorRepository.saveAndFlush(doc);
 
         String json = """
         {
@@ -86,9 +82,47 @@ class DoctorControllerTest {
     @Test
     void shouldDeleteDoctor() throws Exception {
         Doctor doc = new Doctor("Marta", "Zielińska", "22222222222", Specialization.PEDIATRICS, "Gdańsk");
-        doctorRepository.save(doc);
+        Doctor saved = doctorRepository.saveAndFlush(doc);
 
-        mockMvc.perform(delete("/doctors/" + doc.getId()))
+        mockMvc.perform(delete("/doctors/" + saved.getId()))
                 .andExpect(status().isOk());
+
+        mockMvc.perform(get("/doctors/" + saved.getId()))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldGetDoctorsListWithoutAddressField() throws Exception {
+        Doctor d1 = new Doctor("Anna", "Nowak", "11111111111", Specialization.DERMATOLOGY, "Warszawa");
+        Doctor d2 = new Doctor("Jan", "Kowalski", "22222222222", Specialization.CARDIOLOGY, "Kraków");
+        doctorRepository.saveAndFlush(d1);
+        doctorRepository.saveAndFlush(d2);
+
+        mockMvc.perform(get("/doctors"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(2))))
+                .andExpect(jsonPath("$[*].firstName", hasItems("Anna", "Jan")))
+                .andExpect(jsonPath("$[*].lastName", hasItems("Nowak", "Kowalski")))
+                .andExpect(jsonPath("$[*].specialization", hasItems("DERMATOLOGY", "CARDIOLOGY")))
+                .andExpect(jsonPath("$[*].address").doesNotExist());
+    }
+
+    @Test
+    void shouldGetDoctorByIdWithAddressBecauseOfDetailsView() throws Exception {
+        Doctor doc = new Doctor("Anna", "Nowak", "33333333333", Specialization.DERMATOLOGY, "Warszawa");
+        Doctor saved = doctorRepository.saveAndFlush(doc);
+
+        mockMvc.perform(get("/doctors/" + saved.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.firstName").value("Anna"))
+                .andExpect(jsonPath("$.lastName").value("Nowak"))
+                .andExpect(jsonPath("$.address").value("Warszawa"));
+    }
+
+    @Test
+    void shouldReturnErrorWhenDeletingNonExistingDoctor() throws Exception {
+        mockMvc.perform(delete("/doctors/999"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Doctor with id: 999 not found"));
     }
 }

@@ -6,6 +6,8 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
@@ -26,6 +28,10 @@ class DoctorServiceTest {
 
         assertNotNull(saved.getId());
         assertEquals("Jan", saved.getFirstName());
+        assertEquals("Kowalski", saved.getLastName());
+        assertEquals("12345678901", saved.getPesel());
+        assertEquals(Specialization.CARDIOLOGY, saved.getSpecialization());
+        assertEquals("Kraków", saved.getAddress());
     }
 
     @Test
@@ -49,6 +55,9 @@ class DoctorServiceTest {
         Doctor found = doctorService.getDoctorById(saved.getId());
 
         assertEquals("Anna", found.getFirstName());
+        assertEquals("Nowak", found.getLastName());
+        assertEquals(Specialization.DERMATOLOGY, saved.getSpecialization());
+        assertEquals("Warszawa", saved.getAddress());
     }
 
     @Test
@@ -67,5 +76,23 @@ class DoctorServiceTest {
         doctorService.deleteDoctorById(doc.getId());
 
         assertFalse(doctorRepository.findById(doc.getId()).isPresent());
+    }
+
+    @Test
+    void shouldGetDoctors() {
+        doctorService.addDoctor(new Doctor("A", "A", "11111111111", Specialization.CARDIOLOGY, "X"));
+        doctorService.addDoctor(new Doctor("B", "B", "22222222222", Specialization.DERMATOLOGY, "Y"));
+
+        List<Doctor> doctors = doctorService.getDoctors();
+
+        assertTrue(doctors.size() >= 2);
+    }
+
+    @Test
+    void shouldThrowWhenDeletingNonExistingDoctor() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> doctorService.deleteDoctorById(999L));
+
+        assertEquals("Doctor with id: 999 not found", exception.getMessage());
     }
 }
