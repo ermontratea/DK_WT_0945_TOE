@@ -1,6 +1,7 @@
 package pl.edu.agh.to.clinic.doctor;
 
 import org.springframework.stereotype.Service;
+import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
 import java.util.List;
 
@@ -18,11 +19,11 @@ public class DoctorService {
      *
      * @param doctor    doctor object to be added
      * @return          the saved doctor object
-     * @throws IllegalArgumentException     if a doctor with the given pesel already exists
+     * @throws PeselDuplicationException     if a doctor with the given pesel already exists
      */
-    public Doctor addDoctor(Doctor doctor) {
+    public Doctor addDoctor(Doctor doctor) throws PeselDuplicationException {
         if (doctorRepository.existsByPesel(doctor.getPesel())) {
-            throw new IllegalArgumentException("Doctor with this pesel already exists");
+            throw new PeselDuplicationException(doctor.getPesel());
         }
             return doctorRepository.save(doctor);
     }
