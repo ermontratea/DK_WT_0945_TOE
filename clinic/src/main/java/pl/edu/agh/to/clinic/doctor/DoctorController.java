@@ -1,7 +1,9 @@
 package pl.edu.agh.to.clinic.doctor;
 
 import com.fasterxml.jackson.annotation.JsonView;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
 import java.util.List;
@@ -16,7 +18,7 @@ public class DoctorController {
     }
 
     @PostMapping
-    public Doctor addDoctor(@RequestBody Doctor doctor) throws PeselDuplicationException {
+    public Doctor addDoctor(@RequestBody @Valid Doctor doctor){
         return doctorService.addDoctor(doctor);
     }
 

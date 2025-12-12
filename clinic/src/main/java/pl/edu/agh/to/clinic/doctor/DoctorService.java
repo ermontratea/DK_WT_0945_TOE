@@ -1,6 +1,7 @@
 package pl.edu.agh.to.clinic.doctor;
 
 import org.springframework.stereotype.Service;
+import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
 import java.util.List;
@@ -15,11 +16,11 @@ public class DoctorService {
     /**
      * Adds a new doctor to the system.
      * Checks if a doctor with the given PESEL already exists in the database.
-     * If so, {@link IllegalArgumentException} is thrown.
+     * If so, {@link PeselDuplicationException} is thrown.
      *
      * @param doctor    doctor object to be added
      * @return          the saved doctor object
-     * @throws PeselDuplicationException     if a doctor with the given pesel already exists
+     * @throws          PeselDuplicationException if a doctor with the given pesel already exists
      */
     public Doctor addDoctor(Doctor doctor) throws PeselDuplicationException {
         if (doctorRepository.existsByPesel(doctor.getPesel())) {
@@ -38,26 +39,26 @@ public class DoctorService {
 
     /**
      * Retrieves a doctor by their ID
-     * If no doctor with a given ID exists {@link IllegalArgumentException} is thrown.
+     * If no doctor with a given ID exists {@link DoctorNotFoundException} is thrown.
      *
      * @param id    the ID of the doctor to retrieve
      * @return      the doctor with the specified ID
-     * @throws IllegalArgumentException if no doctor with the given ID is found
+     * @throws      DoctorNotFoundException if no doctor with the given ID is found
      */
-    public Doctor getDoctorById(Long id) {
+    public Doctor getDoctorById(Long id) throws DoctorNotFoundException {
         return doctorRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Doctor with id: " + id + " not found"));
+                .orElseThrow(() -> new DoctorNotFoundException(id));
     }
 
     /**
      * Deletes doctor by their ID
-     * If no doctor with the given ID exists, {@link IllegalArgumentException} is thrown.
+     * If no doctor with the given ID exists, {@link DoctorNotFoundException} is thrown.
      * @param id    the ID of the doctor to delete
-     * @throws      IllegalArgumentException if no doctor with the given ID is found
+     * @throws      DoctorNotFoundException if no doctor with the given ID is found
      */
-    public void deleteDoctorById(Long id) {
+    public void deleteDoctorById(Long id) throws DoctorNotFoundException {
         if (!doctorRepository.existsById(id)) {
-            throw new IllegalArgumentException("Doctor with id: " + id + " not found");
+            throw new DoctorNotFoundException(id);
         }
         doctorRepository.deleteById(id);
     }

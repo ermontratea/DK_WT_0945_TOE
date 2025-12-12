@@ -3,13 +3,14 @@ package pl.edu.agh.to.clinic.app;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import pl.edu.agh.to.clinic.doctor.Doctor;
 import pl.edu.agh.to.clinic.doctor.DoctorApiClient;
 import javafx.application.Application;
 import pl.edu.agh.to.clinic.doctor.Specialization;
+import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
+import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
 import java.util.List;
 
@@ -40,7 +41,7 @@ public class ClinicApplicationFX extends Application{
 
         Button addDoctorBtn=new Button("ADD DOCTOR");
 
-        addDoctorBtn.setOnAction(e->{
+        addDoctorBtn.setOnAction(e-> {
             try {
                 Doctor doctor = new Doctor(
                         firstNameField.getText(),
@@ -50,13 +51,18 @@ public class ClinicApplicationFX extends Application{
                         addressField.getText()
                 );
                 api.addDoctor(doctor);
-
                 textArea.setText("Doctor added successfully!");
                 loadDoctors();
-            }catch (Exception ex){
-                textArea.setText("Error adding doctor: " + ex.getMessage());
+            }catch (PeselDuplicationException ex){
+                    textArea.setText(ex.getMessage());
             }
-        });
+            catch (RuntimeException ex) {
+                textArea.setText("Validation errors:\n" + ex.getMessage());
+            }
+            catch (Exception ex) {
+                    textArea.setText("Unexpected error: " + ex.getMessage());
+            }
+    });
 
         addDoctorBox.getChildren().addAll(
                 firstNameField,
@@ -108,8 +114,10 @@ public class ClinicApplicationFX extends Application{
         try {
             List<Doctor> doctorList = api.getDoctors();
             doctorListView.getItems().setAll(doctorList);
-        }catch (Exception e){
-            System.err.println("Error loading doctors list: "+e.getMessage());
+        }catch (RuntimeException ex){
+        textArea.setText("Error loading doctors list: " + ex.getMessage());
+        }catch (Exception ex){
+            textArea.setText("Unexpected error: " + ex.getMessage());
         }
     }
 
@@ -123,8 +131,10 @@ public class ClinicApplicationFX extends Application{
                     "Specialization: "+doctor.getSpecialization()+"\n"+
                             "Address: "+doctor.getAddress()
             );
-        }catch (Exception e){
+        }catch (DoctorNotFoundException e){
             textArea.setText("Error loading doctor details: "+e.getMessage());
+        }catch (Exception ex) {
+            textArea.setText("Unexpected error: " + ex.getMessage());
         }
     }
 
@@ -145,9 +155,12 @@ public class ClinicApplicationFX extends Application{
             }
             textArea.setText("Doctors added successfully!");
             loadDoctors();
-        }catch (Exception e){
-            textArea.setText("Error adding doctors: "+e.getMessage());
-        }}
+        }catch (DoctorNotFoundException e){
+            textArea.setText("Error adding doctors: " + e.getMessage());
+        }catch (Exception ex){
+            textArea.setText("Unexpected error: " + ex.getMessage());
+        }
+    }
 
     // DELETE SELECTED DOCTOR
     private void deleteSelectedDoctor(){
@@ -160,8 +173,10 @@ public class ClinicApplicationFX extends Application{
             api.deleteDoctorById(doctor.getId());
             textArea.setText("Doctor " + doctor +" deleted successfully!");
             loadDoctors();
-        } catch (Exception e){
+        } catch (DoctorNotFoundException e){
             textArea.setText("Error deleting doctor: "+e.getMessage());
+        }catch (Exception ex){
+            textArea.setText("Unexpected error: " + ex.getMessage());
         }
     }
     //DELETE DOCTORS
@@ -173,8 +188,10 @@ public class ClinicApplicationFX extends Application{
             }
             textArea.setText("All doctors deleted successfully!");
             loadDoctors();
-        }catch (Exception e){
+        }catch (DoctorNotFoundException e){
             textArea.setText("Error deleting doctors: "+e.getMessage());
+        }catch (Exception e) {
+            textArea.setText("Unexpected error: " + e.getMessage());
         }
     }
 

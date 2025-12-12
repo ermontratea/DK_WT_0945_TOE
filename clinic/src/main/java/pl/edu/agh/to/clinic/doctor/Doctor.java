@@ -3,6 +3,9 @@ package pl.edu.agh.to.clinic.doctor;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 @Entity
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -19,20 +22,26 @@ public class Doctor {
     private Long id;
 
     @JsonView({Views.List.class, Views.Details.class})
+    @NotBlank(message = "First name cannot be blank")
     private String firstName;
 
     @JsonView({Views.List.class, Views.Details.class})
+    @NotBlank(message = "Last name cannot be blank")
     private String lastName;
 
+    @NotBlank(message = "PESEL cannot be blank")
+    @Pattern(regexp = "\\d{11}", message = "PESEL must have exactly 11 digits")
     @Column(unique = true, nullable = false)
     private String pesel;
 
     @Enumerated(EnumType.STRING)
     @JsonView({Views.List.class, Views.Details.class})
+    @NotNull(message = "Specialization cannot be null")
     private Specialization specialization;
 
 
     @JsonView({Views.Details.class})
+    @NotBlank(message = "Address cannot be blank")
     private String address;
 
     protected Doctor() {}

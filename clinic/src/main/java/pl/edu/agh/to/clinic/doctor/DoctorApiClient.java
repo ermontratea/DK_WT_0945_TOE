@@ -2,6 +2,8 @@ package pl.edu.agh.to.clinic.doctor;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
+import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
 import java.io.IOException;
 import java.net.URI;
@@ -21,6 +23,9 @@ public class DoctorApiClient {
         HttpRequest request= HttpRequest.newBuilder(URI.create(BASE_URL)).GET().build();
 
         HttpResponse<String> response=client.send(request,HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() >= 400) {
+            throw new RuntimeException("Server returned error: " + response.statusCode());
+        }
 
         return mapper.readValue(response.body(), new TypeReference<List<Doctor>>(){});
     }
@@ -31,6 +36,9 @@ public class DoctorApiClient {
         HttpRequest request= HttpRequest.newBuilder(URI.create(BASE_URL + "/" + id)).GET().build();
 
         HttpResponse<String> response=client.send(request,HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 404) {
+            throw new DoctorNotFoundException(id);
+        }
 
         return mapper.readValue(response.body(),Doctor.class);
     }
@@ -44,14 +52,20 @@ public class DoctorApiClient {
                 .POST(HttpRequest.BodyPublishers.ofString(json))
                 .build();
         HttpResponse<String> response=client.send(request,HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 409) {
+            throw new PeselDuplicationException(doctor.getPesel());
+        }else if (response.statusCode() == 400) {
+            throw new RuntimeException(response.body());
+        }
         return mapper.readValue(response.body(),Doctor.class);
     }
 
     // DELETE ONE DOCTOR BY ID
     public void deleteDoctorById(long id) throws InterruptedException, IOException {
         HttpRequest request= HttpRequest.newBuilder(URI.create(BASE_URL + "/" + id)).DELETE().build();
-        client.send(request,HttpResponse.BodyHandlers.discarding());
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 404) {
+            throw new DoctorNotFoundException(id);
+        }
     }
-
-
 }
