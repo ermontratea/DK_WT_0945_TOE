@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
+import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
 import java.util.List;
 
@@ -41,10 +43,10 @@ class DoctorServiceTest {
 
         Doctor duplicate = new Doctor("Jan", "Kowalski", "12345678901", Specialization.CARDIOLOGY, "Kraków");
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        PeselDuplicationException exception = assertThrows(PeselDuplicationException.class,
                 () -> doctorService.addDoctor(duplicate));
 
-        assertEquals("Doctor with this pesel already exists", exception.getMessage());
+        assertEquals("Person with PESEL: 12345678901 already exists.", exception.getMessage());
     }
 
     @Test
@@ -62,10 +64,10 @@ class DoctorServiceTest {
 
     @Test
     void shouldThrowIfDoctorNotFound() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        DoctorNotFoundException exception = assertThrows(DoctorNotFoundException.class,
                 () -> doctorService.getDoctorById(999L));
 
-        assertEquals("Doctor with id: 999 not found", exception.getMessage());
+        assertEquals("Doctor with ID: 999 not found.", exception.getMessage());
     }
 
     @Test
@@ -90,9 +92,9 @@ class DoctorServiceTest {
 
     @Test
     void shouldThrowWhenDeletingNonExistingDoctor() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        DoctorNotFoundException exception = assertThrows(DoctorNotFoundException.class,
                 () -> doctorService.deleteDoctorById(999L));
 
-        assertEquals("Doctor with id: 999 not found", exception.getMessage());
+        assertEquals("Doctor with ID: 999 not found.", exception.getMessage());
     }
 }

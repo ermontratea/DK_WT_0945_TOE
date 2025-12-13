@@ -8,6 +8,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.MediaType;
+import org.springframework.web.client.HttpClientErrorException;
+
 import static org.hamcrest.Matchers.*;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -68,15 +70,15 @@ class DoctorControllerTest {
         mockMvc.perform(post("/doctors")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string("Doctor with this pesel already exists"));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("Person with PESEL: 12345678901 already exists."));
     }
 
     @Test
     void shouldReturnErrorForNonExistingDoctor() throws Exception {
         mockMvc.perform(get("/doctors/999"))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string("Doctor with id: 999 not found"));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Doctor with ID: 999 not found."));
     }
 
     @Test
@@ -88,7 +90,7 @@ class DoctorControllerTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/doctors/" + saved.getId()))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -122,7 +124,7 @@ class DoctorControllerTest {
     @Test
     void shouldReturnErrorWhenDeletingNonExistingDoctor() throws Exception {
         mockMvc.perform(delete("/doctors/999"))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string("Doctor with id: 999 not found"));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Doctor with ID: 999 not found."));
     }
 }
