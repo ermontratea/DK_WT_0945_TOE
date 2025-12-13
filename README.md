@@ -26,7 +26,6 @@ Content-Type: application/json
  DELETE http://localhost:8080/1
  ```
 
-
 ## Frontend Access
 Run the backend first by running `ClinicApplication.java`. Then run `ClinicApplicationFX.java`.
 
@@ -58,3 +57,12 @@ After launching the application, the window should look like this:
 - Button **DELETE SELECTED DOCTOR** – removes the currently selected doctor from the list/database.
 
 - Button **DELETE ALL DOCTORS** – removes all doctors from the list/database.
+
+## API Documentation (Swagger)
+The REST API is documented using **Swagger / OpenAPI**.
+
+After starting the application, Swagger UI is available at:
+http://localhost:8080/swagger-ui.html
+
+The OpenAPI specification can be accessed at:
+http://localhost:8080/v3/api-docs
