@@ -1,6 +1,7 @@
 package pl.edu.agh.to.clinic.duty;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -19,15 +20,15 @@ public class Duty {
 
     @ManyToOne
     @JoinColumn(name = "doctor_id")
-    @JsonView({Views.Internal.class})
-    @JsonBackReference(value="doctor-duty")
+    @JsonView({Views.Public.class, Views.Internal.class})
+    @JsonIgnoreProperties({"duties", "handler", "hibernateLazyInitializer"})
     @NotNull(message = "Doctor is required")
     private Doctor doctor;
 
     @ManyToOne
     @JoinColumn(name = "office_id")
-    @JsonView({Views.Internal.class})
-    @JsonBackReference(value="office-duty")
+    @JsonView({Views.Public.class, Views.Internal.class})
+    @JsonIgnoreProperties({"duties", "handler", "hibernateLazyInitializer"})
     @NotNull(message = "Office is required")
     private Office office;
 

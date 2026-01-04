@@ -123,18 +123,40 @@ public class ClinicApplicationFX extends Application{
 
     // DOCTOR DETAILS
     private void showDoctorDetails(long id){
-        try{
-            Doctor doctor=api.getDoctorById(id);
-            textArea.setText(
-                    "Doctor details:\n"+
-                    "Name: "+doctor.getFirstName()+" "+doctor.getLastName()+"\n"+
-                    "Specialization: "+doctor.getSpecialization()+"\n"+
-                            "Address: "+doctor.getAddress()
-            );
-        }catch (DoctorNotFoundException e){
-            textArea.setText("Error loading doctor details: "+e.getMessage());
-        }catch (Exception ex) {
-            textArea.setText("Unexpected error: " + ex.getMessage());
+//        try{
+//            Doctor doctor=api.getDoctorById(id);
+//            textArea.setText(
+//                    "Doctor details:\n"+
+//                    "Name: "+doctor.getFirstName()+" "+doctor.getLastName()+"\n"+
+//                    "Specialization: "+doctor.getSpecialization()+"\n"+
+//                            "Address: "+doctor.getAddress()
+//            );
+//        }catch (DoctorNotFoundException e){
+//            textArea.setText("Error loading doctor details: "+e.getMessage());
+//        }catch (Exception ex) {
+//            textArea.setText("Unexpected error: " + ex.getMessage());
+//        }
+        try {
+            Doctor doctor = api.getDoctorById(id);
+            StringBuilder sb = new StringBuilder();
+            sb.append("Doctor details:\n");
+            sb.append("Name: ").append(doctor.getFirstName()).append(" ").append(doctor.getLastName()).append("\n");
+            sb.append("Specialization: ").append(doctor.getSpecialization()).append("\n");
+
+            sb.append("\nDuties:\n");
+            if (doctor.getDuties() != null && !doctor.getDuties().isEmpty()) {
+                for (var d : doctor.getDuties()) {
+                    sb.append(" - Room ").append(d.getOffice().getRoomNumber())
+                            .append(": ").append(d.getStartTime().toLocalTime())
+                            .append(" - ").append(d.getEndTime().toLocalTime()).append("\n");
+                }
+            } else {
+                sb.append("No duties assigned.");
+            }
+
+            textArea.setText(sb.toString());
+        } catch (Exception ex) {
+            textArea.setText("Error: " + ex.getMessage());
         }
     }
 

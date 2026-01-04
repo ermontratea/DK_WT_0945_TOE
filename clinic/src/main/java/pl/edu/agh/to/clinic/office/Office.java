@@ -22,7 +22,6 @@ public class Office {
 
     @OneToMany(mappedBy = "office")
     @JsonView(Views.Internal.class)
-    @JsonManagedReference(value="office-duty")
     private List<Duty> duties;
 
     public int getRoomNumber() {

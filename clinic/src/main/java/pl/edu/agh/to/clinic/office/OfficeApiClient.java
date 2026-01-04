@@ -2,6 +2,7 @@ package pl.edu.agh.to.clinic.office;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import pl.edu.agh.to.clinic.exceptions.*;
 
 import java.io.IOException;
@@ -14,7 +15,12 @@ import java.util.List;
 public class OfficeApiClient{
     public static final String BASE_URL = "http://localhost:8080/offices";
     private final HttpClient client=HttpClient.newHttpClient();
-    ObjectMapper mapper = new ObjectMapper();
+    ObjectMapper mapper;
+
+    public OfficeApiClient() {
+        this.mapper = new ObjectMapper();
+        this.mapper.registerModule(new JavaTimeModule());
+    }
 
     // GET OFFICE LIST
     public List<Office> getOffices() throws InterruptedException, IOException {

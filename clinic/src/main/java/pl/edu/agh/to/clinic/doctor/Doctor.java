@@ -22,7 +22,6 @@ public class Doctor extends Person {
 
     @JsonView({Views.Internal.class})
     @OneToMany(mappedBy = "doctor")
-    @JsonManagedReference(value = "doctor-duty")
     private List<Duty> duties;
 
     protected Doctor() {
@@ -33,8 +32,12 @@ public class Doctor extends Person {
         super(firstName,lastName,pesel,address);
         this.specialization = specialization;
     }
+
     public Specialization getSpecialization() {return specialization;}
 
     public void setSpecialization(Specialization specialization) {this.specialization = specialization;}
     public List<Duty> getDuties() {return duties;}
+    public void setDuties(List<Duty> duties) {
+        this.duties = duties;
+    }
 }

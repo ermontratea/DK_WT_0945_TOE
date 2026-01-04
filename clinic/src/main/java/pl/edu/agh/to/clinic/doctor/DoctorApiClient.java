@@ -2,6 +2,7 @@ package pl.edu.agh.to.clinic.doctor;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
@@ -15,7 +16,13 @@ import java.util.List;
 public class DoctorApiClient {
     public static final String BASE_URL = "http://localhost:8080/doctors";
     private final HttpClient client=HttpClient.newHttpClient();
-    ObjectMapper mapper = new ObjectMapper();
+    ObjectMapper mapper;
+
+    public DoctorApiClient() {
+        this.mapper = new ObjectMapper();
+        this.mapper.registerModule(new JavaTimeModule());
+        //this.mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
 
     // GET DOCTOR LIST
     public List<Doctor> getDoctors() throws InterruptedException, IOException {
