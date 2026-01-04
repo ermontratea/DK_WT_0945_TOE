@@ -53,12 +53,16 @@ public class DoctorService {
     /**
      * Deletes doctor by their ID
      * If no doctor with the given ID exists, {@link DoctorNotFoundException} is thrown.
+     * If doctor with given ID has assigned duties, {@link IllegalStateException} is thrown.
      * @param id    the ID of the doctor to delete
      * @throws      DoctorNotFoundException if no doctor with the given ID is found
+     * @throws      IllegalStateException if the doctor has assigned duties
      */
     public void deleteDoctorById(Long id) throws DoctorNotFoundException {
-        if (!doctorRepository.existsById(id)) {
-            throw new DoctorNotFoundException(id);
+        Doctor doctor = doctorRepository.findById(id).orElseThrow(() -> new DoctorNotFoundException(id));
+        if (doctor.getDuties()!=null && !doctor.getDuties().isEmpty())
+        {
+            throw new IllegalStateException("You can't delete a doctor with assigned duties ");
         }
         doctorRepository.deleteById(id);
     }

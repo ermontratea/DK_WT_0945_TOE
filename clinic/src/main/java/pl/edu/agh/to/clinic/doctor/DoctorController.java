@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import pl.edu.agh.to.clinic.common.Views;
 import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
@@ -59,7 +60,7 @@ public class DoctorController {
                     description = "List of doctors returned"
             )
     })
-    @JsonView(Doctor.Views.List.class)
+    @JsonView(Views.Public.class)
     public List<Doctor> getDoctors() {
         return doctorService.getDoctors();
     }
@@ -79,7 +80,7 @@ public class DoctorController {
                     description = "Doctor not found"
             )
     })
-    @JsonView(Doctor.Views.Details.class)
+    @JsonView(Views.Internal.class)
     public Doctor getDoctorById(@PathVariable Long id) {
         return doctorService.getDoctorById(id);
     }
@@ -87,7 +88,7 @@ public class DoctorController {
     @DeleteMapping("{id}")
     @Operation(
             summary = "Delete doctor",
-            description = "Deletes doctor with given id"
+            description = "Deletes doctor with given id, but only if the doctor has no assigned duties"
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -97,6 +98,10 @@ public class DoctorController {
             @ApiResponse(
                     responseCode = "404",
                     description = "Doctor not found"
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Doctor has assigned duties, can't be deleted"
             )
     })
     public void deleteDoctorById(@PathVariable Long id) {
