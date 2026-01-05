@@ -8,7 +8,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.MediaType;
-import org.springframework.web.client.HttpClientErrorException;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+
 
 import static org.hamcrest.Matchers.*;
 
@@ -127,4 +128,28 @@ class DoctorControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Doctor with ID: 999 not found."));
     }
+
+    @Test
+    void shouldReturnValidationErrorsForInvalidDoctor() throws Exception {
+        String json = """
+        {
+            "firstName": "",
+            "lastName": "",
+            "pesel": "123",
+            "specialization": null,
+            "address": ""
+        }
+        """;
+
+        mockMvc.perform(post("/doctors")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("firstName: First name cannot be blank")))
+                .andExpect(content().string(containsString("lastName: Last name cannot be blank")))
+                .andExpect(content().string(containsString("pesel: PESEL must have exactly 11 digits")))
+                .andExpect(content().string(containsString("address: Address cannot be blank")))
+                .andExpect(content().string(containsString("specialization: Specialization cannot be null")));
+    }
+
 }

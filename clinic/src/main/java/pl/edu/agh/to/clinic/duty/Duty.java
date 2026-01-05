@@ -52,4 +52,5 @@ public class Duty {
     public Office getOffice() {
         return office;
     }
+    public Long getId() {return id;}
 }

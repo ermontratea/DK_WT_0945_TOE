@@ -30,4 +30,5 @@ public class Office {
     public List<Duty> getDuties() {
         return duties;
     }
+    public Long getId() {return id;}
 }
