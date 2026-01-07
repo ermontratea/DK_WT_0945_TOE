@@ -1,6 +1,5 @@
 package pl.edu.agh.to.clinic.patient;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -9,7 +8,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
-import pl.edu.agh.to.clinic.common.Views;
+import pl.edu.agh.to.clinic.exceptions.PatientNotFoundException;
+import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
 import java.util.List;
 
@@ -32,7 +32,7 @@ public class PatientController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Patient added successfully",
-                    content = @Content(schema = @Schema(implementation = Patient.class))
+                    content = @Content(schema = @Schema(implementation = PatientDto.class))
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -43,7 +43,7 @@ public class PatientController {
                     description = "Patient with this PESEL already exists"
             )
     })
-    public Patient addPatient(@RequestBody @Valid Patient patient){
+    public PatientDto addPatient(@RequestBody @Valid PatientDto patient) throws PeselDuplicationException {
         return patientService.addPatient(patient);
     }
 
@@ -58,8 +58,7 @@ public class PatientController {
                     description = "List of patients returned"
             )
     })
-    @JsonView(Views.Public.class)
-    public List<Patient> getPatients() {
+    public List<PatientDto> getPatients() {
         return patientService.getPatients();
     }
 
@@ -78,8 +77,7 @@ public class PatientController {
                     description = "Patient not found"
             )
     })
-    @JsonView(Views.Internal.class)
-    public Patient getPatientById(@PathVariable Long id) {
+    public PatientDto getPatientById(@PathVariable Long id) throws PatientNotFoundException {
         return patientService.getPatientById(id);
     }
 
@@ -98,7 +96,7 @@ public class PatientController {
                     description = "Patient not found"
             )
     })
-    public void deletePatientById(@PathVariable Long id) {
+    public void deletePatientById(@PathVariable Long id) throws PatientNotFoundException {
         patientService.deletePatientById(id);
     }
 }

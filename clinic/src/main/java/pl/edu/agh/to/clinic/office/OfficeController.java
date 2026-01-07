@@ -1,6 +1,5 @@
 package pl.edu.agh.to.clinic.office;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -9,8 +8,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
-import pl.edu.agh.to.clinic.common.Views;
-import pl.edu.agh.to.clinic.patient.Patient;
 
 
 import java.util.List;
@@ -31,14 +28,14 @@ public class OfficeController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Office added successfully",
-                    content = @Content(schema = @Schema(implementation = Office.class))
+                    content = @Content(schema = @Schema(implementation = OfficeDto.class))
             ),
             @ApiResponse(
                     responseCode = "409",
                     description = "Office with this room number already exists"
             )
     })
-    public Office addOffice(@RequestBody @Valid Office office){
+    public OfficeDto addOffice(@RequestBody @Valid OfficeDto office){
         return officeService.addOffice(office);
     }
 
@@ -47,11 +44,11 @@ public class OfficeController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "List of offices returned"
+                    description = "List of offices returned",
+                    content = @Content(schema = @Schema(implementation = OfficeDto.class))
             )
     })
-    @JsonView(Views.Public.class)
-    public List<Office> getOffices(){
+    public List<OfficeDto> getOffices(){
         return officeService.getOffices();
     }
 
@@ -61,15 +58,15 @@ public class OfficeController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Office found"
+                    description = "Office found",
+                    content = @Content(schema = @Schema(implementation = OfficeDto.class))
             ),
             @ApiResponse(
                     responseCode = "404",
                     description = "Office not found"
             )
     })
-    @JsonView(Views.Internal.class)
-    public Office getOfficeById(@PathVariable Long id){
+    public OfficeDto getOfficeById(@PathVariable Long id){
         return officeService.getOfficeById(id);
     }
 

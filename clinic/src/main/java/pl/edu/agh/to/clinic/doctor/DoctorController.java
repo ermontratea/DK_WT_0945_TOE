@@ -1,6 +1,5 @@
 package pl.edu.agh.to.clinic.doctor;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -9,9 +8,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
-import pl.edu.agh.to.clinic.common.Views;
-import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
-import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
 import java.util.List;
 
@@ -34,7 +30,7 @@ public class DoctorController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Doctor added successfully",
-                    content = @Content(schema = @Schema(implementation = Doctor.class))
+                    content = @Content(schema = @Schema(implementation = DoctorDto.class))
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -45,7 +41,7 @@ public class DoctorController {
                     description = "Doctor with this PESEL already exists"
             )
     })
-    public Doctor addDoctor(@RequestBody @Valid Doctor doctor){
+    public DoctorDto addDoctor(@RequestBody @Valid DoctorDto doctor){
         return doctorService.addDoctor(doctor);
     }
 
@@ -57,11 +53,11 @@ public class DoctorController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "List of doctors returned"
+                    description = "List of doctors returned",
+                    content = @Content(schema = @Schema(implementation = DoctorDto.class))
             )
     })
-    @JsonView(Views.Public.class)
-    public List<Doctor> getDoctors() {
+    public List<DoctorDto> getDoctors() {
         return doctorService.getDoctors();
     }
 
@@ -73,15 +69,15 @@ public class DoctorController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Doctor found"
+                    description = "Doctor found",
+                    content = @Content(schema = @Schema(implementation = DoctorDto.class))
             ),
             @ApiResponse(
                     responseCode = "404",
                     description = "Doctor not found"
             )
     })
-    @JsonView(Views.Internal.class)
-    public Doctor getDoctorById(@PathVariable Long id) {
+    public DoctorDto getDoctorById(@PathVariable Long id) {
         return doctorService.getDoctorById(id);
     }
 

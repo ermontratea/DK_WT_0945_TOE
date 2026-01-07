@@ -18,23 +18,35 @@ public class DoctorService {
      * Checks if a doctor with the given PESEL already exists in the database.
      * If so, {@link PeselDuplicationException} is thrown.
      *
-     * @param doctor    doctor object to be added
-     * @return          the saved doctor object
-     * @throws          PeselDuplicationException if a doctor with the given pesel already exists
+     * @param dto    doctor data to be added
+     * @return          the saved doctor as DTO
+     * @throws          PeselDuplicationException if a doctor with the given PESEL already exists
      */
-    public Doctor addDoctor(Doctor doctor) throws PeselDuplicationException {
-        if (doctorRepository.existsByPesel(doctor.getPesel())) {
-            throw new PeselDuplicationException(doctor.getPesel());
+    public DoctorDto addDoctor(DoctorDto dto) throws PeselDuplicationException {
+        if (doctorRepository.existsByPesel(dto.getPesel())) {
+            throw new PeselDuplicationException(dto.getPesel());
         }
-            return doctorRepository.save(doctor);
+
+        Doctor doctor = new Doctor(
+                dto.getFirstName(),
+                dto.getLastName(),
+                dto.getPesel(),
+                dto.getSpecialization(),
+                dto.getAddress()
+        );
+        Doctor saved = doctorRepository.save(doctor);
+        return new DoctorDto(saved);
     }
 
     /**
      * Retrieves all doctors from the system.
-     * @return  a list of all saved doctors
+     * @return  a list of all saved doctors as DTOs
      */
-    public List<Doctor> getDoctors() {
-        return doctorRepository.findAll();
+    public List<DoctorDto> getDoctors() {
+        return doctorRepository.findAll()
+                .stream()
+                .map(DoctorDto::new)
+                .toList();
     }
 
     /**
@@ -42,12 +54,13 @@ public class DoctorService {
      * If no doctor with a given ID exists {@link DoctorNotFoundException} is thrown.
      *
      * @param id    the ID of the doctor to retrieve
-     * @return      the doctor with the specified ID
+     * @return      the doctor with the specified ID as DTO
      * @throws      DoctorNotFoundException if no doctor with the given ID is found
      */
-    public Doctor getDoctorById(Long id) throws DoctorNotFoundException {
-        return doctorRepository.findById(id)
+    public DoctorDto getDoctorById(Long id) throws DoctorNotFoundException {
+        Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new DoctorNotFoundException(id));
+        return new DoctorDto(doctor);
     }
 
     /**

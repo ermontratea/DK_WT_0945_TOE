@@ -18,36 +18,42 @@ public class OfficeService {
      * Checks if an office with the given room number already exists in the database.
      * If so, {@link RoomNumberDuplicationException} is thrown.
      *
-     * @param office   office object to be added
-     * @return          the saved office object
+     * @param dto   office data to be added
+     * @return          the saved office as DTO
      * @throws          RoomNumberDuplicationException if an office with the given room number already exists
      */
-    public Office addOffice(Office office) throws RoomNumberDuplicationException {
-        if (officeRepository.existsByRoomNumber(office.getRoomNumber())) {
-            throw new RoomNumberDuplicationException(office.getRoomNumber());
+    public OfficeDto addOffice(OfficeDto dto) throws RoomNumberDuplicationException {
+        if (officeRepository.existsByRoomNumber(dto.getRoomNumber())) {
+            throw new RoomNumberDuplicationException(dto.getRoomNumber());
         }
-        return officeRepository.save(office);
+        Office office = new Office(dto.getRoomNumber());
+        Office saved = officeRepository.save(office);
+        return new OfficeDto(saved);
     }
 
     /**
-     * Retrieves all offices from the system.
-     * @return  a list of all saved offices
+     * Retrieves all offices from the system as DTOs.
+     * @return  a list of all saved offices as DTOs
      */
-    public List<Office> getOffices() {
-        return officeRepository.findAll();
+    public List<OfficeDto> getOffices() {
+        return officeRepository.findAll()
+                .stream()
+                .map(OfficeDto::new)
+                .toList();
     }
 
     /**
-     * Retrieves an office by its ID
+     * Retrieves an office by its ID as DTO
      * If no office with a given ID exists {@link OfficeNotFoundException} is thrown.
      *
      * @param id    the ID of the office to retrieve
-     * @return      the office with the specified ID
+     * @return      the office with the specified ID as DTO
      * @throws      OfficeNotFoundException if no office with the given ID is found
      */
-    public Office getOfficeById(Long id) throws OfficeNotFoundException {
-        return officeRepository.findById(id)
+    public OfficeDto getOfficeById(Long id) throws OfficeNotFoundException {
+        Office office = officeRepository.findById(id)
                 .orElseThrow(() -> new OfficeNotFoundException(id));
+        return new OfficeDto(office);
     }
 
     /**
