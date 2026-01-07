@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import pl.edu.agh.to.clinic.duty.Duty;
 import pl.edu.agh.to.clinic.common.Views;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -31,4 +32,12 @@ public class Office {
         return duties;
     }
     public Long getId() {return id;}
+    protected Office() {}
+    public Office(int roomNumber){
+        this.roomNumber = roomNumber;
+//        this.duties = new ArrayList<>();
+    }
+    public String toString(){
+        return "Office " + roomNumber;
+    }
 }
