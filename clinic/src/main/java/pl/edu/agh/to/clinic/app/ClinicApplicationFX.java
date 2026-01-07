@@ -3,6 +3,7 @@ package pl.edu.agh.to.clinic.app;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import pl.edu.agh.to.clinic.doctor.Doctor;
@@ -35,14 +36,12 @@ public class ClinicApplicationFX extends Application{
         // VERTICAL LAYOUT
         VBox root=new VBox(10);
 
-
         Button addDoctorBtn=new Button("ADD DOCTOR");
         addDoctorBtn.setOnAction(e->addCustomDoctor());
-        root.getChildren().addAll(addDoctorBtn);
+
         // ADD DOCTOR BUTTON
         Button addDoctorsBtn=new Button("ADD SAMPLE DOCTORS");
         addDoctorsBtn.setOnAction(e->addSampleDoctors());
-        root.getChildren().add(addDoctorsBtn);
 
         // DELETE SELECTED DOCTOR BUTTON
 //        Button deleteSelectedDoctorBtn=new Button("DELETE SELECTED DOCTOR");
@@ -52,17 +51,29 @@ public class ClinicApplicationFX extends Application{
         // DELETE ALL DOCTORS BUTTON
         Button deleteDoctorsBtn=new Button("DELETE ALL DOCTORS");
         deleteDoctorsBtn.setOnAction(e->deleteAllDoctors());
-        root.getChildren().add(deleteDoctorsBtn);
+
+        VBox doctorBtns=new VBox(10, addDoctorBtn, addDoctorsBtn,deleteDoctorsBtn);
+
+        doctorBtns.setPadding(new Insets(10));
 
         // ADD PATIENT BUTTON
         Button addPatientBtn=new Button("ADD PATIENT");
         addPatientBtn.setOnAction(e->addCustomPatient());
-        root.getChildren().add(addPatientBtn);
 
         // ADD OFFICE BUTTON
         Button addOfficeBtn=new Button("ADD OFFICE");
         addOfficeBtn.setOnAction(e->addOffice());
-        root.getChildren().add(addOfficeBtn);
+
+        // ASSIGN DUTY BUTTON
+        Button assignDutyBtn=new Button("ASSIGN DUTY");
+        assignDutyBtn.setOnAction(e->assignDuty());
+
+        VBox rightBtns=new VBox(10, addPatientBtn, addOfficeBtn,assignDutyBtn);
+
+        rightBtns.setPadding(new Insets(10));
+
+        HBox btns=new HBox(10,doctorBtns,rightBtns);
+        root.getChildren().addAll(btns);
 
         // DOCTOR LIST
         doctorListView.getSelectionModel().selectedItemProperty().addListener((observable,oldValue,newValue)->{
@@ -215,11 +226,8 @@ public class ClinicApplicationFX extends Application{
     }
     //ADD CUSTOM DOCTOR
     private void addCustomDoctor(){
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Add Doctor");
-        dialog.setHeaderText("Enter doctor information: ");
-        ButtonType addButton = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(addButton, ButtonType.CANCEL);
+        Stage stage=new Stage();
+        stage.setTitle("Add Doctor");
 
         VBox box=new VBox(10);
         box.setPadding(new Insets(10));
@@ -236,20 +244,25 @@ public class ClinicApplicationFX extends Application{
 
         TextField addressField=new TextField();
         addressField.setPromptText("Address");
+        Button addButton=new Button("Add");
+        Button cancelButton=new Button("Cancel");
+        HBox buttons=new HBox(10,addButton,cancelButton);
 
         box.getChildren().addAll(
+                new Label("First name:"),
                 firstNameField,
+                new Label("Last name:"),
                 lastNameField,
+                new Label("PESEL:"),
                 peselField,
+                new Label("Specialization:"),
                 specializationBox,
-                addressField
+                new Label("Address:"),
+                addressField,
+                buttons
         );
-        dialog.getDialogPane().setContent(box);
-        dialog.setWidth(400);
-        dialog.setHeight(500);
 
-        dialog.showAndWait().ifPresent(button->{
-            if(button == addButton){
+        addButton.setOnAction(e->{
                 try {
                     Doctor doctor = new Doctor(
                             firstNameField.getText(),
@@ -261,6 +274,7 @@ public class ClinicApplicationFX extends Application{
                     doctorApi.addDoctor(doctor);
                     loadDoctors();
                     showMessage("Doctor added successfully!");
+                    stage.close();
                 }catch (PeselDuplicationException ex){
                 showMessage(ex.getMessage());
             }
@@ -270,8 +284,10 @@ public class ClinicApplicationFX extends Application{
             catch (Exception ex) {
                 showMessage("Unexpected error: " + ex.getMessage());
             }
-            }
         });
+        cancelButton.setOnAction(e->stage.close());
+        stage.setScene(new Scene(box,400,600));
+        stage.show();
     }
 
     // DELETE SELECTED DOCTOR
@@ -310,11 +326,13 @@ public class ClinicApplicationFX extends Application{
     //PATIENTS
     //ADD CUSTOM PATIENT
     private void addCustomPatient(){
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Add Patient");
-        dialog.setHeaderText("Enter patient information: ");
-        ButtonType addButton = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(addButton, ButtonType.CANCEL);
+        Stage stage=new Stage();
+        stage.setTitle("Add Patient");
+//        Dialog<ButtonType> dialog = new Dialog<>();
+//        dialog.setTitle("Add Patient");
+//        dialog.setHeaderText("Enter patient information: ");
+//        ButtonType addButton = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
+//        dialog.getDialogPane().getButtonTypes().addAll(addButton, ButtonType.CANCEL);
 
         VBox box=new VBox(10);
         box.setPadding(new Insets(10));
@@ -327,19 +345,24 @@ public class ClinicApplicationFX extends Application{
 
         TextField addressField=new TextField();
         addressField.setPromptText("Address");
+        Button addButton=new Button("Add");
+        Button cancelButton=new Button("Cancel");
+        HBox buttons=new HBox(10,addButton,cancelButton);
+
 
         box.getChildren().addAll(
+                new Label("First name"),
                 firstNameField,
+                new Label("Last name"),
                 lastNameField,
+                new Label("Pesel"),
                 peselField,
-                addressField
+                new Label("Address"),
+                addressField,
+                buttons
         );
-        dialog.getDialogPane().setContent(box);
-        dialog.setWidth(400);
-        dialog.setHeight(500);
 
-        dialog.showAndWait().ifPresent(button->{
-            if(button == addButton){
+        addButton.setOnAction(e->{
                 try {
                     Patient patient=new Patient(
                             firstNameField.getText(),
@@ -349,6 +372,7 @@ public class ClinicApplicationFX extends Application{
                     );
                     patientApi.addPatient(patient);
                     showMessage("Patient added successfully!");
+                    stage.close();
                 }catch (PeselDuplicationException ex){
                     showMessage(ex.getMessage());
                 }
@@ -358,8 +382,11 @@ public class ClinicApplicationFX extends Application{
                 catch (Exception ex) {
                     showMessage("Unexpected error: " + ex.getMessage());
                 }
-            }
+
         });
+        cancelButton.setOnAction(e->stage.close());
+        stage.setScene(new Scene(box,400,600));
+        stage.show();
     }
 
     // LOADING OFFICES
@@ -424,42 +451,52 @@ public class ClinicApplicationFX extends Application{
 
     //ADD OFFICE
     private void addOffice(){
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Add Office");
-        dialog.setHeaderText("Enter office details: ");
-        ButtonType addButton = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(addButton, ButtonType.CANCEL);
+        Stage stage=new Stage();
+        stage.setTitle("Add Office");
+//        Dialog<ButtonType> dialog = new Dialog<>();
+//        dialog.setTitle("Add Office");
+//        dialog.setHeaderText("Enter office details: ");
+//        ButtonType addButton = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
+//        dialog.getDialogPane().getButtonTypes().addAll(addButton, ButtonType.CANCEL);
 
         VBox box=new VBox(10);
         box.setPadding(new Insets(10));
         TextField roomNumberField=new TextField();
         roomNumberField.setPromptText("Room number");
+        Button addButton=new Button("Add");
+        Button cancelButton=new Button("Cancel");
+        HBox buttons=new HBox(10,addButton,cancelButton);
+        Label label=new Label("Room number: ");
 
         box.getChildren().addAll(
-                roomNumberField
+                label,
+                roomNumberField,
+                buttons
         );
-        dialog.getDialogPane().setContent(box);
-        dialog.setWidth(400);
-        dialog.setHeight(500);
 
-        dialog.showAndWait().ifPresent(button->{
-            if(button == addButton){
+
+        addButton.setOnAction(e->{
                 try {
                     Office office=new Office(
                             parseInt(roomNumberField.getText())
                     );
                     officeApi.addOffice(office);
                     loadOffices();
-                    showMessage("Office added successfully!");}
+                    showMessage("Office added successfully!");
+                stage.close();}
                 catch (RoomNumberDuplicationException ex) {
                     showMessage(ex.getMessage());
                 }
                 catch (Exception ex) {
                     showMessage("Unexpected error: " + ex.getMessage());
                 }
-            }
+
         });
+        cancelButton.setOnAction(e->stage.close());
+        stage.setScene(new Scene(box,400,300));
+        stage.show();
     }
+    private void assignDuty(){}
 
 
 
