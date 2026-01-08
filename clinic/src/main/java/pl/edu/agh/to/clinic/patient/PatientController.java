@@ -58,7 +58,7 @@ public class PatientController {
                     description = "List of patients returned"
             )
     })
-    public List<PatientDto> getPatients() {
+    public List<PatientListDto> getPatients() {
         return patientService.getPatients();
     }
 
@@ -77,7 +77,7 @@ public class PatientController {
                     description = "Patient not found"
             )
     })
-    public PatientDto getPatientById(@PathVariable Long id) throws PatientNotFoundException {
+    public PatientListDto getPatientById(@PathVariable Long id) throws PatientNotFoundException {
         return patientService.getPatientById(id);
     }
 

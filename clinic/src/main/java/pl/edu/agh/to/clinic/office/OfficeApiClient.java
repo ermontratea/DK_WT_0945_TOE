@@ -23,7 +23,7 @@ public class OfficeApiClient{
     }
 
     // GET OFFICE LIST
-    public List<Office> getOffices() throws InterruptedException, IOException {
+    public List<OfficeDto> getOffices() throws InterruptedException, IOException {
 
         HttpRequest request= HttpRequest.newBuilder(URI.create(BASE_URL)).GET().build();
 
@@ -32,24 +32,26 @@ public class OfficeApiClient{
             throw new RuntimeException("Server returned error: " + response.statusCode());
         }
 
-        return mapper.readValue(response.body(), new TypeReference<List<Office>>(){});
+        return mapper.readValue(response.body(), new TypeReference<List<OfficeDto>>(){});
     }
 
     // GET ONE OFFICE BY ID
-    public Office getOfficeById(long id) throws InterruptedException, IOException {
+    public OfficeDto getOfficeById(long id) throws InterruptedException, IOException {
 
         HttpRequest request= HttpRequest.newBuilder(URI.create(BASE_URL + "/" + id)).GET().build();
 
         HttpResponse<String> response=client.send(request,HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 404) {
-            throw new PatientNotFoundException(id);
+            throw new OfficeNotFoundException(id);
+        } else if (response.statusCode() >= 400) {
+            throw new RuntimeException("Server returned error: " + response.statusCode() + " " + response.body());
         }
 
-        return mapper.readValue(response.body(),Office.class);
+        return mapper.readValue(response.body(),OfficeDto.class);
     }
 
     // ADD ONE OFFICE
-    public Office addOffice(Office office) throws InterruptedException, IOException {
+    public OfficeDto addOffice(Office office) throws InterruptedException, IOException {
         String json=mapper.writeValueAsString(office);
         HttpRequest request=HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL))
@@ -61,8 +63,10 @@ public class OfficeApiClient{
             throw new RoomNumberDuplicationException(office.getRoomNumber());
         }else if (response.statusCode() == 400) {
             throw new RuntimeException(response.body());
+        } else if (response.statusCode() >= 400) {
+            throw new RuntimeException("Server returned error: " + response.statusCode() + " " + response.body());
         }
-        return mapper.readValue(response.body(),Office.class);
+        return mapper.readValue(response.body(),OfficeDto.class);
     }
 
     // DELETE ONE OFFICE BY ID
@@ -73,6 +77,8 @@ public class OfficeApiClient{
             throw new OfficeNotFoundException(id);
         } else if (response.statusCode()==409) {
             throw new IllegalStateException("You can't delete an office with assigned duties ");
+        } else if (response.statusCode() >= 400) {
+            throw new RuntimeException("Server returned error: " + response.statusCode() + " " + response.body());
         }
     }
 }

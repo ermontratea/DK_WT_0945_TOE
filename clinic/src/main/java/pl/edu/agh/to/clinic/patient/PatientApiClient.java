@@ -19,7 +19,7 @@ public class PatientApiClient {
     ObjectMapper mapper = new ObjectMapper();
 
     // GET PATIENT LIST
-    public List<Patient> getPatients() throws InterruptedException, IOException {
+    public List<PatientListDto> getPatients() throws InterruptedException, IOException {
 
         HttpRequest request= HttpRequest.newBuilder(URI.create(BASE_URL)).GET().build();
 
@@ -28,11 +28,11 @@ public class PatientApiClient {
             throw new RuntimeException("Server returned error: " + response.statusCode());
         }
 
-        return mapper.readValue(response.body(), new TypeReference<List<Patient>>(){});
+        return mapper.readValue(response.body(), new TypeReference<List<PatientListDto>>(){});
     }
 
     // GET ONE PATIENT BY ID
-    public Patient getPatientById(long id) throws InterruptedException, IOException {
+    public PatientListDto getPatientById(long id) throws InterruptedException, IOException {
 
         HttpRequest request= HttpRequest.newBuilder(URI.create(BASE_URL + "/" + id)).GET().build();
 
@@ -41,11 +41,11 @@ public class PatientApiClient {
             throw new PatientNotFoundException(id);
         }
 
-        return mapper.readValue(response.body(),Patient.class);
+        return mapper.readValue(response.body(),PatientListDto.class);
     }
 
     // ADD ONE PATIENT
-    public Patient addPatient(Patient patient) throws InterruptedException, IOException {
+    public PatientDto  addPatient(PatientDto  patient) throws InterruptedException, IOException {
         String json=mapper.writeValueAsString(patient);
         HttpRequest request=HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL))
@@ -58,7 +58,7 @@ public class PatientApiClient {
         }else if (response.statusCode() == 400) {
             throw new RuntimeException(response.body());
         }
-        return mapper.readValue(response.body(),Patient.class);
+        return mapper.readValue(response.body(),PatientDto.class);
     }
 
     // DELETE ONE PATIENT BY ID
@@ -66,7 +66,7 @@ public class PatientApiClient {
         HttpRequest request= HttpRequest.newBuilder(URI.create(BASE_URL + "/" + id)).DELETE().build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 404) {
-            throw new DoctorNotFoundException(id);
+            throw new PatientNotFoundException(id);
         }
     }
 }

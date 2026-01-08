@@ -54,10 +54,10 @@ public class DoctorController {
             @ApiResponse(
                     responseCode = "200",
                     description = "List of doctors returned",
-                    content = @Content(schema = @Schema(implementation = DoctorDto.class))
+                    content = @Content(schema = @Schema(implementation = DoctorListDto.class))
             )
     })
-    public List<DoctorDto> getDoctors() {
+    public List<DoctorListDto> getDoctors() {
         return doctorService.getDoctors();
     }
 
@@ -70,14 +70,14 @@ public class DoctorController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Doctor found",
-                    content = @Content(schema = @Schema(implementation = DoctorDto.class))
+                    content = @Content(schema = @Schema(implementation = DoctorListDto.class))
             ),
             @ApiResponse(
                     responseCode = "404",
                     description = "Doctor not found"
             )
     })
-    public DoctorDto getDoctorById(@PathVariable Long id) {
+    public DoctorListDto getDoctorById(@PathVariable Long id) {
         return doctorService.getDoctorById(id);
     }
 

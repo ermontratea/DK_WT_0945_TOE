@@ -41,10 +41,10 @@ public class PatientService {
      * Retrieves all patients from the system.
      * @return  a list of all saved patients as DTOs
      */
-    public List<PatientDto> getPatients() {
+    public List<PatientListDto> getPatients() {
         return patientRepository.findAll()
                 .stream()
-                .map(PatientDto::new)
+                .map(PatientListDto::new)
                 .toList();
     }
 
@@ -56,10 +56,10 @@ public class PatientService {
      * @return      the patient with the specified ID as DTO
      * @throws      PatientNotFoundException if no patient with the given ID is found
      */
-    public PatientDto getPatientById(Long id) throws PatientNotFoundException {
+    public PatientListDto getPatientById(Long id) throws PatientNotFoundException {
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new PatientNotFoundException(id));
-        return new PatientDto(patient);
+        return new PatientListDto(patient);
     }
 
     /**

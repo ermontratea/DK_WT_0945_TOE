@@ -40,6 +40,11 @@ public class DutyApiClient {
     public List<DutyDto> getDuties() throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(URI.create(BASE_URL)).GET().build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() >= 400) {
+            throw new RuntimeException("Server returned error: " + response.statusCode() + " " + response.body());
+        }
+
         return mapper.readValue(response.body(), new TypeReference<List<DutyDto>>() {});
     }
 
@@ -64,6 +69,13 @@ public class DutyApiClient {
 
     public void deleteDuty(long id) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(URI.create(BASE_URL + "/" + id)).DELETE().build();
-        client.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == 404) {
+            throw new DutyNotFoundException(id);
+        } else if (response.statusCode() >= 400) {
+            throw new RuntimeException("Server returned error: " + response.statusCode() + " " + response.body());
+        }
+
     }
 }

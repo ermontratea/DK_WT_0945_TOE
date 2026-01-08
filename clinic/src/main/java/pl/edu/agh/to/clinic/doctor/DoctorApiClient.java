@@ -25,7 +25,7 @@ public class DoctorApiClient {
     }
 
     // GET DOCTOR LIST
-    public List<Doctor> getDoctors() throws InterruptedException, IOException {
+    public List<DoctorListDto> getDoctors() throws InterruptedException, IOException {
 
         HttpRequest request= HttpRequest.newBuilder(URI.create(BASE_URL)).GET().build();
 
@@ -34,11 +34,11 @@ public class DoctorApiClient {
             throw new RuntimeException("Server returned error: " + response.statusCode());
         }
 
-        return mapper.readValue(response.body(), new TypeReference<List<Doctor>>(){});
+        return mapper.readValue(response.body(), new TypeReference<List<DoctorListDto>>(){});
     }
 
     // GET ONE DOCTOR BY ID
-    public Doctor getDoctorById(long id) throws InterruptedException, IOException {
+    public DoctorListDto getDoctorById(long id) throws InterruptedException, IOException {
 
         HttpRequest request= HttpRequest.newBuilder(URI.create(BASE_URL + "/" + id)).GET().build();
 
@@ -47,11 +47,11 @@ public class DoctorApiClient {
             throw new DoctorNotFoundException(id);
         }
 
-        return mapper.readValue(response.body(),Doctor.class);
+        return mapper.readValue(response.body(),DoctorListDto.class);
     }
 
     // ADD ONE DOCTOR
-    public Doctor addDoctor(Doctor doctor) throws InterruptedException, IOException {
+    public DoctorDto addDoctor(DoctorDto doctor) throws InterruptedException, IOException {
         String json=mapper.writeValueAsString(doctor);
         HttpRequest request=HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL))
@@ -64,7 +64,7 @@ public class DoctorApiClient {
         }else if (response.statusCode() == 400) {
             throw new RuntimeException(response.body());
         }
-        return mapper.readValue(response.body(),Doctor.class);
+        return mapper.readValue(response.body(),DoctorDto.class);
     }
 
     // DELETE ONE DOCTOR BY ID

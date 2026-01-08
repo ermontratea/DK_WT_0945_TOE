@@ -42,10 +42,10 @@ public class DoctorService {
      * Retrieves all doctors from the system.
      * @return  a list of all saved doctors as DTOs
      */
-    public List<DoctorDto> getDoctors() {
+    public List<DoctorListDto> getDoctors() {
         return doctorRepository.findAll()
                 .stream()
-                .map(DoctorDto::new)
+                .map(DoctorListDto::new)
                 .toList();
     }
 
@@ -57,10 +57,10 @@ public class DoctorService {
      * @return      the doctor with the specified ID as DTO
      * @throws      DoctorNotFoundException if no doctor with the given ID is found
      */
-    public DoctorDto getDoctorById(Long id) throws DoctorNotFoundException {
+    public DoctorListDto getDoctorById(Long id) throws DoctorNotFoundException {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new DoctorNotFoundException(id));
-        return new DoctorDto(doctor);
+        return new DoctorListDto(doctor);
     }
 
     /**
