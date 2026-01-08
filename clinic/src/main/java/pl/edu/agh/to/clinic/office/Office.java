@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import pl.edu.agh.to.clinic.duty.Duty;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -19,11 +18,6 @@ public class Office {
 
     @OneToMany(mappedBy = "office")
     private List<Duty> duties;
-
-    public Office() {}
-    public Office(int roomNumber) {
-        this.roomNumber = roomNumber;
-    }
 
     public int getRoomNumber() {
         return roomNumber;
