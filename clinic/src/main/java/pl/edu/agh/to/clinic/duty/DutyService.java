@@ -36,20 +36,24 @@ public class DutyService {
      * @throws IllegalStateException   if doctor or office is already busy in this time range
      */
     public DutyDto addDuty(DutyDto dto){
+        if (!dto.getStartTime().isBefore(dto.getEndTime())) {
+            throw new IllegalArgumentException("Start time must be before end time!");
+        }
+
         Doctor doctor = doctorRepository.findById(dto.getDoctorId())
                 .orElseThrow(() -> new DoctorNotFoundException(dto.getDoctorId()));
         Office office = officeRepository.findById(dto.getOfficeId())
                 .orElseThrow(() -> new OfficeNotFoundException(dto.getOfficeId()));
 
-        boolean doctorBusy = dutyRepository.existsByDoctorAndStartTimeBeforeAndEndTimeAfter(
-                doctor, dto.getEndTime(), dto.getStartTime());
+        boolean doctorBusy = dutyRepository.existsByDoctorAndDayOfWeekAndStartTimeBeforeAndEndTimeAfter(
+                doctor, dto.getDayOfWeek(), dto.getEndTime(), dto.getStartTime());
 
         if (doctorBusy) {
             throw new IllegalStateException("Doctor already has a duty assigned during these hours!");
         }
 
-        boolean officeBusy = dutyRepository.existsByOfficeAndStartTimeBeforeAndEndTimeAfter(
-                office, dto.getEndTime(), dto.getStartTime());
+        boolean officeBusy = dutyRepository.existsByOfficeAndDayOfWeekAndStartTimeBeforeAndEndTimeAfter(
+                office, dto.getDayOfWeek(), dto.getEndTime(), dto.getStartTime());
 
         if (officeBusy) {
             throw new IllegalStateException("Office is already occupied during these hours!");

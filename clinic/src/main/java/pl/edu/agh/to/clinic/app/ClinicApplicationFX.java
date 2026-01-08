@@ -4,6 +4,7 @@ import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import pl.edu.agh.to.clinic.doctor.Doctor;
@@ -37,19 +38,36 @@ public class ClinicApplicationFX extends Application{
     private final DutyApiClient dutyApi=new DutyApiClient();
     private final ListView<Doctor> doctorListView=new ListView<>();
     private final ListView<Office> officeListView=new ListView<>();
+    private final ListView<Patient> patientListView=new ListView<>();
 
+    private VBox doctorsPanel;
+    private VBox patientsPanel;
+    private VBox officesPanel;
 
     @Override
     public void start(Stage stage) throws Exception{
         // VERTICAL LAYOUT
         VBox root=new VBox(10);
-
-        Button addDoctorBtn=new Button("ADD DOCTOR");
-        addDoctorBtn.setOnAction(e->addCustomDoctor());
+        //TOP NAV
+        Button doctorsListBtn = new Button("DOCTORS LIST");
+        Button patientsListBtn = new Button("PATIENTS LIST");
+        Button officesListBtn = new Button("OFFICES LIST");
+        String navBtnStyle = "-fx-background-color: #4a4a4a; -fx-text-fill: white; -fx-font-size: 14px;";
+        doctorsListBtn.setStyle(navBtnStyle);
+        patientsListBtn.setStyle(navBtnStyle);
+        officesListBtn.setStyle(navBtnStyle);
+        doctorsListBtn.setPrefWidth(120);
+        patientsListBtn.setPrefWidth(120);
+        officesListBtn.setPrefWidth(120);
+        doctorsListBtn.setPrefHeight(45);
+        patientsListBtn.setPrefHeight(45);
+        officesListBtn.setPrefHeight(45);
+        HBox nav = new HBox(10, doctorsListBtn, patientsListBtn, officesListBtn);
+        nav.setPadding(new Insets(0, 0, 10, 0));
 
         // ADD DOCTOR BUTTON
-        Button addDoctorsBtn=new Button("ADD SAMPLE DOCTORS");
-        addDoctorsBtn.setOnAction(e->addSampleDoctors());
+        Button addDoctorBtn=new Button("ADD DOCTOR");
+        addDoctorBtn.setOnAction(e->addCustomDoctor());
 
         // DELETE SELECTED DOCTOR BUTTON
 //        Button deleteSelectedDoctorBtn=new Button("DELETE SELECTED DOCTOR");
@@ -60,9 +78,14 @@ public class ClinicApplicationFX extends Application{
         Button deleteDoctorsBtn=new Button("DELETE ALL DOCTORS");
         deleteDoctorsBtn.setOnAction(e->deleteAllDoctors());
 
-        VBox doctorBtns=new VBox(10, addDoctorBtn, addDoctorsBtn,deleteDoctorsBtn);
+        // ADD SAMPLE DATA BUTTON
+        Button addSampleDataBtn = new Button("ADD SAMPLE DATA");
+        addSampleDataBtn.setStyle("-fx-background-color: #4a4a4a; -fx-text-fill: white;");
+        addSampleDataBtn.setOnAction(e -> addSampleData());
 
+        VBox doctorBtns = new VBox(10, addDoctorBtn, deleteDoctorsBtn, addSampleDataBtn);
         doctorBtns.setPadding(new Insets(10));
+        doctorBtns.setPrefWidth(200);
 
         // ADD PATIENT BUTTON
         Button addPatientBtn=new Button("ADD PATIENT");
@@ -77,35 +100,63 @@ public class ClinicApplicationFX extends Application{
         assignDutyBtn.setOnAction(e->assignDuty());
 
         VBox rightBtns=new VBox(10, addPatientBtn, addOfficeBtn,assignDutyBtn);
-
         rightBtns.setPadding(new Insets(10));
+        rightBtns.setPrefWidth(200);
 
-        HBox btns=new HBox(10,doctorBtns,rightBtns);
-        root.getChildren().addAll(btns);
 
-        // DOCTOR LIST
-        doctorListView.getSelectionModel().selectedItemProperty().addListener((observable,oldValue,newValue)->{
-            if(newValue!=null) showDoctorDetails(newValue.getId()); //doctor details if clicked
+        HBox actions = new HBox(10, doctorBtns, rightBtns);
+
+
+        doctorsPanel = new VBox(10, new Label("Doctors:"), doctorListView);
+        patientsPanel = new VBox(10, new Label("Patients:"), patientListView);
+        officesPanel = new VBox(10, new Label("Offices:"), officeListView);
+
+        StackPane content = new StackPane(doctorsPanel, patientsPanel, officesPanel);
+
+        // default view: doctors
+        showPanel(doctorsPanel, patientsPanel, officesPanel);
+
+// ===== LIST CLICK HANDLERS =====
+        doctorListView.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
+            if (newV != null) showDoctorDetails(newV.getId());
         });
 
-
-        //OFFICE LIST
-        root.getChildren().addAll(new Label("Doctors: "), doctorListView);
-        officeListView.getSelectionModel().selectedItemProperty().addListener((observable,oldValue,newValue)->{
-            if(newValue!=null) showOfficeDetails(newValue.getId()); //doctor details if clicked
+        patientListView.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
+            if (newV != null) showPatientDetails(newV.getId());
         });
 
-        root.getChildren().addAll(new Label("Offices: "), officeListView);
+        officeListView.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
+            if (newV != null) showOfficeDetails(newV.getId());
+        });
+
+        //NAV BUTTONS ACTIONS
+        doctorsListBtn.setOnAction(e -> showPanel(doctorsPanel, patientsPanel, officesPanel));
+        patientsListBtn.setOnAction(e -> showPanel(patientsPanel, doctorsPanel, officesPanel));
+        officesListBtn.setOnAction(e -> showPanel(officesPanel, doctorsPanel, patientsPanel));
+
+        root.getChildren().addAll(nav, actions, content);
 
         stage.setScene(new Scene(root));
-        stage.setWidth(600);
-        stage.setHeight(700);
+        stage.setWidth(650);
+        stage.setHeight(780);
         stage.setTitle("Clinic Application");
         stage.show();
 
-        //SHOW DOCTOR LIST
+        //LOAD LISTS
         loadDoctors();
+        loadPatients();
         loadOffices();
+    }
+
+    private void showPanel(VBox show, VBox hide1, VBox hide2) {
+        show.setVisible(true);
+        show.setManaged(true);
+
+        hide1.setVisible(false);
+        hide1.setManaged(false);
+
+        hide2.setVisible(false);
+        hide2.setManaged(false);
     }
 
     private void showMessage(String message){
@@ -134,6 +185,19 @@ public class ClinicApplicationFX extends Application{
             showMessage("Unexpected error: " + ex.getMessage());
         }
     }
+
+    //LOADING PATIENTS
+    private void loadPatients() {
+        try {
+            List<Patient> patients = patientApi.getPatients();
+            patientListView.getItems().setAll(patients);
+        } catch (RuntimeException ex) {
+            showMessage("Error loading patients list: " + ex.getMessage());
+        } catch (Exception ex) {
+            showMessage("Unexpected error: " + ex.getMessage());
+        }
+    }
+
 
 
     // DOCTOR DETAILS
@@ -209,10 +273,63 @@ public class ClinicApplicationFX extends Application{
 //        }
     }
 
-    // ADDING DOCTORS
-    private void addSampleDoctors(){
+    //PATIENT DETAILS
+    private void showPatientDetails(long id) {
+        try {
+            Patient patient = patientApi.getPatientById(id);
+
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setTitle("Patient Details");
+            dialog.setHeaderText(patient.getFirstName() + " " + patient.getLastName());
+
+            VBox content = new VBox(10);
+            Label addressLabel = new Label("Address: " + patient.getAddress());
+            content.getChildren().addAll(addressLabel);
+
+            dialog.getDialogPane().setContent(content);
+            dialog.setWidth(400);
+            dialog.setHeight(250);
+
+            ButtonType deleteButton = new ButtonType("Delete patient", ButtonBar.ButtonData.OK_DONE);
+            dialog.getDialogPane().getButtonTypes().addAll(deleteButton, ButtonType.CLOSE);
+
+            dialog.showAndWait().ifPresent(btn -> {
+                if (btn == deleteButton) {
+                    try {
+                        patientApi.deletePatientById(patient.getId());
+                        loadPatients();
+                        showMessage("Patient " + patient + " deleted successfully!");
+                    } catch (Exception ex) {
+                        showMessage("Error deleting patient: " + ex.getMessage());
+                    }
+                }
+            });
+
+        } catch (Exception ex) {
+            showMessage("Unexpected error: " + ex.getMessage());
+        }
+    }
+
+
+    private void addDutyOrShowError(Doctor doctor, Office office, DayOfWeek day, LocalTime start, LocalTime end) {
+        DutyDto duty = new DutyDto();
+        duty.setDoctorId(doctor.getId());
+        duty.setOfficeId(office.getId());
+        duty.setDayOfWeek(day);
+        duty.setStartTime(start);
+        duty.setEndTime(end);
+
+        try {
+            dutyApi.addDuty(duty);
+        } catch (Exception ex) {
+            showMessage("Could not add duty for doctorId=" + doctor.getId() + ": " + ex.getMessage());
+        }
+    }
+
+    // ADDING SAMPLE DATA
+    private void addSampleData(){
         try{
-            List<Doctor> doctors=List.of(
+            List<Doctor> doctorsToAdd=List.of(
                     new Doctor("Anna", "Nowak", "00000000000", Specialization.CARDIOLOGY, "A 1"),
                     new Doctor("Jan", "Kowalski", "11111111111", Specialization.CARDIOLOGY, "B 1"),
                     new Doctor("Marta", "Zielińska", "22222222222", Specialization.CARDIOLOGY, "C 1"),
@@ -221,14 +338,87 @@ public class ClinicApplicationFX extends Application{
                     new Doctor("Andrzej", "Dąb", "55555555555", Specialization.ORTHOPEDICS, "F 1"),
                     new Doctor("Karolina", "Kamień", "66666666666", Specialization.PEDIATRICS, "G 1")
                     );
-            for(Doctor doctor:doctors){
+            for(Doctor doctor:doctorsToAdd){
                 doctorApi.addDoctor(doctor);
             }
-            loadDoctors();
-            showMessage("Doctors added successfully!");
 
-        }catch (DoctorNotFoundException e){
-            showMessage("Error adding doctors: " + e.getMessage());
+            List<Office> officesToAdd = List.of(
+                    new Office(101),
+                    new Office(102),
+                    new Office(103)
+            );
+            for (Office o : officesToAdd) {
+                try {
+                    officeApi.addOffice(o);
+                } catch (RoomNumberDuplicationException ignored) {
+                }
+            }
+
+            List<Patient> patientsToAdd = List.of(
+                    new Patient("Piotr", "Lis", "77777777777", "Kraków"),
+                    new Patient("Alicja", "Wójcik", "88888888888", "Warszawa"),
+                    new Patient("Kasia", "Krawczyk", "99999999999", "Gdańsk"),
+                    new Patient("Ola", "Mazur", "12121212121", "Wrocław"),
+                    new Patient("Bartek", "Zając", "13131313131", "Poznań")
+            );
+            for (Patient p : patientsToAdd) {
+                try {
+                    patientApi.addPatient(p);
+                } catch (PeselDuplicationException ignored) {
+                }
+            }
+            List<Doctor> doctors = doctorApi.getDoctors().stream()
+                    .sorted((a, b) -> Long.compare(a.getId(), b.getId()))
+                    .toList();
+
+            List<Office> offices = officeApi.getOffices().stream()
+                    .sorted((a, b) -> Long.compare(a.getId(), b.getId()))
+                    .toList();
+
+            if (doctors.size() < 7 || offices.size() < 3) {
+                showMessage("Not enough doctors/offices to assign duties. Doctors=" + doctors.size() + ", Offices=" + offices.size());
+                loadDoctors();
+                loadOffices();
+                loadPatients();
+                return;
+            }
+
+            Doctor d1 = doctors.get(0);
+            Doctor d2 = doctors.get(1);
+            Doctor d3 = doctors.get(2);
+            Doctor d4 = doctors.get(3);
+            Doctor d5 = doctors.get(4);
+            Doctor d6 = doctors.get(5);
+//            Doctor d7 = doctors.get(6);
+
+            Office o1 = offices.get(0);
+            Office o2 = offices.get(1);
+            Office o3 = offices.get(2);
+
+            addDutyOrShowError(d1, o1, DayOfWeek.MONDAY,    LocalTime.of(8, 0),  LocalTime.of(10, 0));
+            addDutyOrShowError(d1, o2, DayOfWeek.MONDAY,    LocalTime.of(10, 0), LocalTime.of(12, 0));
+            addDutyOrShowError(d1, o3, DayOfWeek.MONDAY,    LocalTime.of(12, 0), LocalTime.of(14, 0));
+
+            addDutyOrShowError(d2, o1, DayOfWeek.TUESDAY,   LocalTime.of(8, 0),  LocalTime.of(10, 0));
+            addDutyOrShowError(d2, o2, DayOfWeek.TUESDAY,   LocalTime.of(10, 0), LocalTime.of(12, 0));
+            addDutyOrShowError(d2, o3, DayOfWeek.TUESDAY,   LocalTime.of(12, 0), LocalTime.of(14, 0));
+
+            addDutyOrShowError(d3, o1, DayOfWeek.WEDNESDAY, LocalTime.of(8, 0),  LocalTime.of(10, 0));
+            addDutyOrShowError(d3, o2, DayOfWeek.WEDNESDAY, LocalTime.of(10, 0), LocalTime.of(12, 0));
+            addDutyOrShowError(d3, o3, DayOfWeek.WEDNESDAY, LocalTime.of(12, 0), LocalTime.of(14, 0));
+
+            addDutyOrShowError(d4, o1, DayOfWeek.THURSDAY,  LocalTime.of(8, 0),  LocalTime.of(10, 0));
+            addDutyOrShowError(d4, o2, DayOfWeek.THURSDAY,  LocalTime.of(10, 0), LocalTime.of(12, 0));
+
+            addDutyOrShowError(d5, o3, DayOfWeek.FRIDAY,    LocalTime.of(8, 0),  LocalTime.of(10, 0));
+            addDutyOrShowError(d5, o1, DayOfWeek.FRIDAY,    LocalTime.of(10, 0), LocalTime.of(12, 0));
+
+            addDutyOrShowError(d6, o2, DayOfWeek.FRIDAY,    LocalTime.of(12, 0), LocalTime.of(14, 0));
+
+            loadDoctors();
+            loadOffices();
+            loadPatients();
+            showMessage("Sample data added successfully!");
 
         }catch (Exception ex){
             showMessage("Unexpected error: " + ex.getMessage());
@@ -377,6 +567,7 @@ public class ClinicApplicationFX extends Application{
                             addressField.getText()
                     );
                     patientApi.addPatient(patient);
+                    loadPatients();
                     showMessage("Patient added successfully!");
                     stage.close();
                 }catch (PeselDuplicationException ex){
