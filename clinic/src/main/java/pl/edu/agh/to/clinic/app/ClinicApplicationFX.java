@@ -10,6 +10,9 @@ import pl.edu.agh.to.clinic.doctor.Doctor;
 import pl.edu.agh.to.clinic.doctor.DoctorApiClient;
 import javafx.application.Application;
 import pl.edu.agh.to.clinic.doctor.Specialization;
+import pl.edu.agh.to.clinic.duty.Duty;
+import pl.edu.agh.to.clinic.duty.DutyApiClient;
+import pl.edu.agh.to.clinic.duty.DutyDto;
 import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.OfficeNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
@@ -19,7 +22,11 @@ import pl.edu.agh.to.clinic.office.OfficeApiClient;
 import pl.edu.agh.to.clinic.patient.Patient;
 import pl.edu.agh.to.clinic.patient.PatientApiClient;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.time.DayOfWeek;
 
 import static java.lang.Integer.parseInt;
 
@@ -27,6 +34,7 @@ public class ClinicApplicationFX extends Application{
     private final DoctorApiClient doctorApi=new DoctorApiClient();
     private final PatientApiClient patientApi=new PatientApiClient();
     private final OfficeApiClient officeApi=new OfficeApiClient();
+    private final DutyApiClient dutyApi=new DutyApiClient();
     private final ListView<Doctor> doctorListView=new ListView<>();
     private final ListView<Office> officeListView=new ListView<>();
 
@@ -142,15 +150,18 @@ public class ClinicApplicationFX extends Application{
             dutiesArea.setWrapText(true);
             dutiesArea.setEditable(false);
             StringBuilder sb = new StringBuilder();
-            if (doctor.getDuties() != null && !doctor.getDuties().isEmpty()) {
-                for (var d : doctor.getDuties()) {
-                    sb.append("Room ").append(d.getOffice().getRoomNumber())
-                            .append(": ").append(d.getStartTime().toLocalTime())
-                            .append(" - ").append(d.getEndTime().toLocalTime()).append("\n");
+            List<DutyDto> duties =dutyApi.getDuties().stream().filter(d->d.getDoctorId().equals(doctor.getId())).toList();
+            if (!duties.isEmpty()) {
+                for (DutyDto d : duties) {
+                    Office office = officeApi.getOfficeById(d.getOfficeId());
+                    int roomNumber = office.getRoomNumber();
+                    sb.append(d.getDayOfWeek()).append(" | Office ").append(roomNumber).append(" | ").append(d.getStartTime())
+                            .append(" - ").append(d.getEndTime()).append("\n");
                 }
-            } else {
+            }else {
                 sb.append("No duties assigned.");
             }
+
             dutiesArea.setText(sb.toString());
             content.getChildren().addAll(specializationLabel, addressLabel, new Label("Duties: "),dutiesArea);
             dialog.getDialogPane().setContent(content);
@@ -328,11 +339,6 @@ public class ClinicApplicationFX extends Application{
     private void addCustomPatient(){
         Stage stage=new Stage();
         stage.setTitle("Add Patient");
-//        Dialog<ButtonType> dialog = new Dialog<>();
-//        dialog.setTitle("Add Patient");
-//        dialog.setHeaderText("Enter patient information: ");
-//        ButtonType addButton = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
-//        dialog.getDialogPane().getButtonTypes().addAll(addButton, ButtonType.CANCEL);
 
         VBox box=new VBox(10);
         box.setPadding(new Insets(10));
@@ -413,15 +419,27 @@ public class ClinicApplicationFX extends Application{
             dutiesArea.setWrapText(true);
             dutiesArea.setEditable(false);
             StringBuilder sb = new StringBuilder();
-            if (office.getDuties() != null && !office.getDuties().isEmpty()) {
-                for (var d : office.getDuties()) {
-                    sb.append("Doctor ").append(d.getDoctor().toString())
-                            .append(": ").append(d.getStartTime().toLocalTime())
-                            .append(" - ").append(d.getEndTime().toLocalTime()).append("\n");
+            List<DutyDto> duties =dutyApi.getDuties().stream().filter(d->d.getOfficeId().equals(office.getId())).toList();
+            if (!duties.isEmpty()) {
+                List<Doctor> doctors=doctorApi.getDoctors();
+                for (DutyDto d : duties) {
+                    Doctor doctor=doctors.stream().filter(doc->doc.getId().equals(d.getDoctorId())).findFirst().orElse(null);
+                    String doctorName = doctor != null ? doctor.getFirstName() + " " + doctor.getLastName() : "Unknown";
+                    sb.append(doctorName).append(" | ").append(d.getDayOfWeek()).append(" | ").append(d.getStartTime())
+                            .append(" - ").append(d.getEndTime()).append("\n");
                 }
-            } else {
+            }else {
                 sb.append("No duties assigned.");
             }
+//            if (office.getDuties() != null && !office.getDuties().isEmpty()) {
+//                for (var d : office.getDuties()) {
+//                    sb.append("Doctor ").append(d.getDoctor().toString())
+//                            .append(": ").append(d.getStartTime())
+//                            .append(" - ").append(d.getEndTime()).append("\n");
+//                }
+//            } else {
+//                sb.append("No duties assigned.");
+//            }
             dutiesArea.setText(sb.toString());
             dialog.getDialogPane().setContent(content);
             content.getChildren().addAll(new Label("Duties: "),dutiesArea);
@@ -496,7 +514,123 @@ public class ClinicApplicationFX extends Application{
         stage.setScene(new Scene(box,400,300));
         stage.show();
     }
-    private void assignDuty(){}
+    private void assignDuty(){
+        Stage stage=new Stage();
+        stage.setTitle("Assign Duty");
+
+        VBox box=new VBox(10);
+        box.setPadding(new Insets(10));
+
+        TextField startHourField=new TextField();
+        startHourField.setPromptText("HH:MM");
+        TextField endHourField=new TextField();
+        endHourField.setPromptText("HH:MM");
+
+        ComboBox<DayOfWeek> dayBox=new ComboBox<>();
+        dayBox.getItems().addAll(DayOfWeek.values());
+        dayBox.setPromptText("Day of week");
+
+        ListView<Doctor> availableDoctorsView=new ListView<>();
+        ListView<Office> availableOfficesView=new ListView<>();
+
+        Button checkBtn=new Button("Check availability");
+        Button assignButton=new Button("Assign");
+        Button cancelButton=new Button("Cancel");
+        HBox buttons=new HBox(10,assignButton,cancelButton);
+
+
+        box.getChildren().addAll(
+                new Label("Day of week: "),
+                dayBox,
+                new Label("Start time "),
+                startHourField,
+                new Label("End time"),
+                endHourField,
+                checkBtn,
+                new Label("Available doctors"),
+                availableDoctorsView,
+                new Label("Available offices"),
+                availableOfficesView,
+                buttons
+        );
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+
+        //CHECK AVAILABILITY - SHOW AVAILABLE DOCTORS AND OFFICES LIST
+
+        checkBtn.setOnAction(e-> {
+                    try {
+                        if (dayBox.getValue() == null) {
+                            showMessage("Please select day of week");
+                            return;
+                        }
+                        LocalTime startTime = LocalTime.parse(startHourField.getText(), formatter);
+                        LocalTime endTime = LocalTime.parse(endHourField.getText(), formatter);
+
+                        List<DutyDto> duties = dutyApi.getDuties();
+                        List<Doctor> doctors = doctorApi.getDoctors();
+                        List<Office> offices = officeApi.getOffices();
+
+                        availableDoctorsView.getItems().setAll(doctors.stream()
+                                .filter(d -> isDoctorAvailable(d, dayBox.getValue(), startTime, endTime, duties)).toList());
+                        availableOfficesView.getItems().setAll(offices.stream()
+                                .filter(o -> isOfficeAvailable(o, dayBox.getValue(), startTime, endTime, duties)).toList());
+
+                    } catch (Exception ex) {
+                        showMessage("Invalid input: " + ex.getMessage());
+                    }
+                });
+        assignButton.setOnAction(e->{
+            Doctor doctor = availableDoctorsView.getSelectionModel().getSelectedItem();
+            Office office= availableOfficesView.getSelectionModel().getSelectedItem();
+            if (doctor == null || office == null) {
+                showMessage("Please select doctor and office");
+                return;
+            }
+            try{
+                LocalTime startTime=LocalTime.parse(startHourField.getText(),formatter);
+                LocalTime endTime= LocalTime.parse(endHourField.getText(),formatter);
+                DutyDto duty=new DutyDto();
+                duty.setDoctorId(doctor.getId());
+                duty.setOfficeId(office.getId());
+                duty.setStartTime(startTime);
+                duty.setEndTime(endTime);
+                duty.setDayOfWeek(dayBox.getValue());
+                dutyApi.addDuty(duty);
+
+                loadDoctors();
+                loadOffices();
+                showMessage("Duty added successfully!");
+                stage.close();
+
+            }catch (Exception ex){
+                showMessage("Error assigning duty: "+ex.getMessage());
+            }
+        });
+
+        cancelButton.setOnAction(e->stage.close());
+
+        stage.setScene(new Scene(box,400,600));
+        stage.show();
+
+    }
+
+    private boolean isDoctorAvailable(Doctor doctor,DayOfWeek day, LocalTime start,LocalTime end, List<DutyDto> duties){
+        return duties.stream()
+                .filter(d -> d.getDoctorId().equals(doctor.getId()))
+                .filter(d->d.getDayOfWeek().equals(day))
+                .noneMatch(d ->
+                        d.getStartTime().isBefore(end)
+                                && d.getEndTime().isAfter(start)
+                );
+    }
+    private boolean isOfficeAvailable(Office office,DayOfWeek day, LocalTime start,LocalTime end, List<DutyDto> duties){
+        return duties.stream()
+                .filter(d->d.getOfficeId().equals(office.getId()))
+                .filter(d->d.getDayOfWeek().equals(day))
+                .noneMatch(d-> d.getStartTime().isBefore(end) && d.getEndTime().isAfter(start));
+    }
+
+
 
 
 

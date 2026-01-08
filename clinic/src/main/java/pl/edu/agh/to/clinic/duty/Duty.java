@@ -5,7 +5,9 @@ import jakarta.validation.constraints.NotNull;
 import pl.edu.agh.to.clinic.doctor.Doctor;
 import pl.edu.agh.to.clinic.office.Office;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 public class Duty {
@@ -24,30 +26,46 @@ public class Duty {
     private Office office;
 
     @NotNull(message = "Start time is required")
-    private LocalDateTime startTime;
+    private LocalTime startTime;
 
     @NotNull(message = "End time is required")
-    private LocalDateTime endTime;
+    private LocalTime endTime;
 
-    public Duty() {}
-    public Duty(Doctor doctor, Office office, LocalDateTime startTime, LocalDateTime endTime) {
+    @NotNull(message = "Day of week is required")
+    private DayOfWeek dayOfWeek;
+
+
+    public Duty() {
+    }
+
+    public Duty(Doctor doctor, Office office, DayOfWeek dayOfWeek,LocalTime startTime, LocalTime endTime) {
         this.doctor = doctor;
         this.office = office;
         this.startTime = startTime;
         this.endTime = endTime;
+        this.dayOfWeek = dayOfWeek;
     }
 
     public Doctor getDoctor() {
         return doctor;
     }
-    public LocalDateTime getStartTime() {
+
+    public LocalTime getStartTime() {
         return startTime;
     }
-    public LocalDateTime getEndTime() {
+
+    public LocalTime getEndTime() {
         return endTime;
     }
+
+    public DayOfWeek getDayOfWeek() {return dayOfWeek;}
+
     public Office getOffice() {
         return office;
     }
-    public Long getId() {return id;}
+
+    public Long getId() {
+        return id;
+    }
+
 }

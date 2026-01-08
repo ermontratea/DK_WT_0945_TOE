@@ -58,6 +58,7 @@ public class DutyService {
         Duty duty = new Duty(
                 doctor,
                 office,
+                dto.getDayOfWeek(),
                 dto.getStartTime(),
                 dto.getEndTime()
         );

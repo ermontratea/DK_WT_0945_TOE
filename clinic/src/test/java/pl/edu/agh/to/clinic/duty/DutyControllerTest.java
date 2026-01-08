@@ -12,6 +12,7 @@ import pl.edu.agh.to.clinic.exceptions.DutyNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.GlobalExceptionHandler;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
@@ -44,8 +45,8 @@ class DutyControllerTest {
         d1.setId(1L);
         d1.setDoctorId(1L);
         d1.setOfficeId(2L);
-        d1.setStartTime(LocalDateTime.of(2025,1,1,8,0));
-        d1.setEndTime(LocalDateTime.of(2025,1,1,12,0));
+        d1.setStartTime(LocalTime.of(8,0));
+        d1.setEndTime(LocalTime.of(12,0));
 
         when(dutyService.getDuties()).thenReturn(List.of(d1));
 
@@ -62,8 +63,8 @@ class DutyControllerTest {
         dto.setId(5L);
         dto.setDoctorId(1L);
         dto.setOfficeId(2L);
-        dto.setStartTime(LocalDateTime.of(2025,1,1,8,0));
-        dto.setEndTime(LocalDateTime.of(2025,1,1,12,0));
+        dto.setStartTime(LocalTime.of(8,0));
+        dto.setEndTime(LocalTime.of(12,0));
 
         when(dutyService.getDutyById(5L)).thenReturn(dto);
 
@@ -90,8 +91,8 @@ class DutyControllerTest {
         DutyDto request = new DutyDto();
         request.setDoctorId(1L);
         request.setOfficeId(2L);
-        request.setStartTime(LocalDateTime.of(2025,1,1,8,0));
-        request.setEndTime(LocalDateTime.of(2025,1,1,12,0));
+        request.setStartTime(LocalTime.of(8,0));
+        request.setEndTime(LocalTime.of(12,0));
 
         DutyDto response = new DutyDto();
         response.setId(10L);

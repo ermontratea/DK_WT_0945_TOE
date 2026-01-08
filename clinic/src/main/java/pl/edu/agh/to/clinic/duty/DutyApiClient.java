@@ -21,7 +21,7 @@ public class DutyApiClient {
         this.mapper = new ObjectMapper();
         this.mapper.registerModule(new JavaTimeModule());
     }
-    public Duty getDutyById(long id) throws IOException, InterruptedException {
+    public DutyDto getDutyById(long id) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(URI.create(BASE_URL + "/" + id))
                 .GET()
                 .build();
@@ -34,16 +34,16 @@ public class DutyApiClient {
             throw new RuntimeException("Server returned error: " + response.statusCode());
         }
 
-        return mapper.readValue(response.body(), Duty.class);
+        return mapper.readValue(response.body(), DutyDto.class);
     }
 
-    public List<Duty> getDuties() throws IOException, InterruptedException {
+    public List<DutyDto> getDuties() throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(URI.create(BASE_URL)).GET().build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        return mapper.readValue(response.body(), new TypeReference<>() {});
+        return mapper.readValue(response.body(), new TypeReference<List<DutyDto>>() {});
     }
 
-    public Duty addDuty(Duty duty) throws IOException, InterruptedException {
+    public DutyDto addDuty(DutyDto duty) throws IOException, InterruptedException {
         String json = mapper.writeValueAsString(duty);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL))
@@ -59,7 +59,7 @@ public class DutyApiClient {
             throw new RuntimeException("Server error: " + response.statusCode());
         }
 
-        return mapper.readValue(response.body(), Duty.class);
+        return mapper.readValue(response.body(), DutyDto.class);
     }
 
     public void deleteDuty(long id) throws IOException, InterruptedException {
