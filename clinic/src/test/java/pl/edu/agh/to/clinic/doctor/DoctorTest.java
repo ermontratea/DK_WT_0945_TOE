@@ -8,43 +8,19 @@ class DoctorTest {
 
     @Test
     void shouldBuildDoctorAndUseGetters() {
-        Doctor d = new Doctor("A", "B", "123", Specialization.CARDIOLOGY, "Addr");
+        Doctor d = new Doctor("A", "B", "12345678901", Specialization.CARDIOLOGY, "Addr");
 
         assertEquals("A", d.getFirstName());
         assertEquals("B", d.getLastName());
-        assertEquals("123", d.getPesel());
+        assertEquals("12345678901", d.getPesel());
         assertEquals(Specialization.CARDIOLOGY, d.getSpecialization());
         assertEquals("Addr", d.getAddress());
+        assertEquals("A B", d.toString());
     }
 
     @Test
-    void shouldUpdateFieldsWithSetters() {
-        Doctor d = new Doctor("A", "B", "123", Specialization.CARDIOLOGY, "Addr");
-
-        d.setFirstName("X");
-        d.setLastName("Y");
-        d.setPesel("999");
-        d.setSpecialization(Specialization.DERMATOLOGY);
-        d.setAddress("New");
-
-        assertEquals("X", d.getFirstName());
-        assertEquals("Y", d.getLastName());
-        assertEquals("999", d.getPesel());
-        assertEquals(Specialization.DERMATOLOGY, d.getSpecialization());
-        assertEquals("New", d.getAddress());
-    }
-
-    @Test
-    void toStringShouldReturnFullName() {
-        Doctor d = new Doctor("Jan", "Kowalski", "123", Specialization.CARDIOLOGY, "Addr");
-        assertEquals("Jan Kowalski", d.toString());
-    }
-
-    @Test
-    void shouldUseNoArgsConstructorAndSetters() {
-        Doctor d = new Doctor();
-
-        assertNull(d.getId());
+    void shouldUpdateDoctorWithSetters() {
+        Doctor d = new Doctor("X", "Y", "99999999999", Specialization.DERMATOLOGY, "Old");
 
         d.setFirstName("Jan");
         d.setLastName("Kowalski");
@@ -59,7 +35,4 @@ class DoctorTest {
         assertEquals("Kraków", d.getAddress());
         assertEquals("Jan Kowalski", d.toString());
     }
-
-
-
 }

@@ -1,119 +1,164 @@
 package pl.edu.agh.to.clinic.office;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
-import pl.edu.agh.to.clinic.doctor.Doctor;
-import pl.edu.agh.to.clinic.doctor.DoctorRepository;
-import pl.edu.agh.to.clinic.doctor.Specialization;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import pl.edu.agh.to.clinic.duty.Duty;
-import pl.edu.agh.to.clinic.duty.DutyRepository;
 import pl.edu.agh.to.clinic.exceptions.OfficeNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.RoomNumberDuplicationException;
 
 import java.lang.reflect.Field;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@AutoConfigureTestDatabase
-@Transactional
+@ExtendWith(MockitoExtension.class)
 class OfficeServiceTest {
 
-    @Autowired
+    @Mock
     private OfficeRepository officeRepository;
 
-    @Autowired
+    @InjectMocks
     private OfficeService officeService;
 
-    @Autowired
-    private DoctorRepository doctorRepository;
+    private void setId(Office office, long id) throws Exception {
+        Field idField = Office.class.getDeclaredField("id");
+        idField.setAccessible(true);
+        idField.set(office, id);
+    }
 
-    @Autowired
-    private DutyRepository dutyRepository;
-
-    private Office createOffice(int roomNumber) throws Exception {
-        Office office = new Office();
-        Field roomField = Office.class.getDeclaredField("roomNumber");
-        roomField.setAccessible(true);
-        roomField.setInt(office, roomNumber);
-        return officeRepository.saveAndFlush(office);
+    private void setDuties(Office office, List<Duty> duties) throws Exception {
+        Field dutiesField = Office.class.getDeclaredField("duties");
+        dutiesField.setAccessible(true);
+        dutiesField.set(office, duties);
     }
 
     @Test
     void shouldAddOfficeSuccessfully() throws Exception {
-        Office office = new Office();
-        Field roomField = Office.class.getDeclaredField("roomNumber");
-        roomField.setAccessible(true);
-        roomField.setInt(office, 101);
+        OfficeDto dto = new OfficeDto();
+        dto.setRoomNumber(101);
 
-        Office saved = officeService.addOffice(office);
+        when(officeRepository.existsByRoomNumber(101)).thenReturn(false);
 
-        assertNotNull(saved);
-        assertNotNull(saved.getRoomNumber());
-        assertEquals(101, saved.getRoomNumber());
+        Office saved = new Office(101);
+        setId(saved, 1L);
+
+        when(officeRepository.save(any(Office.class))).thenReturn(saved);
+
+        OfficeDto result = officeService.addOffice(dto);
+
+        assertEquals(1L, result.getId());
+        assertEquals(101, result.getRoomNumber());
+
+        verify(officeRepository).existsByRoomNumber(101);
+        verify(officeRepository).save(any(Office.class));
     }
 
     @Test
-    void shouldThrowIfRoomNumberExists() throws Exception {
-        Office office1 = createOffice(200);
+    void shouldThrowWhenRoomNumberDuplicated() {
+        OfficeDto dto = new OfficeDto();
+        dto.setRoomNumber(101);
 
-        Office office2 = new Office();
-        Field roomField = Office.class.getDeclaredField("roomNumber");
-        roomField.setAccessible(true);
-        roomField.setInt(office2, 200);
+        when(officeRepository.existsByRoomNumber(101)).thenReturn(true);
 
-        RoomNumberDuplicationException ex = assertThrows(RoomNumberDuplicationException.class,
-                () -> officeService.addOffice(office2));
+        RoomNumberDuplicationException ex = assertThrows(
+                RoomNumberDuplicationException.class,
+                () -> officeService.addOffice(dto)
+        );
 
-        assertEquals("Office with room number: 200 already exists.", ex.getMessage());
+        assertEquals("Office with room number: 101 already exists.", ex.getMessage());
+        verify(officeRepository).existsByRoomNumber(101);
+        verify(officeRepository, never()).save(any());
     }
 
     @Test
-    void shouldGetOfficeByIdSuccessfully() throws Exception {
-        Office office = createOffice(300);
+    void shouldReturnAllOfficesAsDtos() {
+        Office o1 = new Office(101);
+        Office o2 = new Office(102);
 
-        Office found = officeService.getOfficeById(office.getId());
+        when(officeRepository.findAll()).thenReturn(List.of(o1, o2));
 
-        assertEquals(300, found.getRoomNumber());
+        List<OfficeDto> result = officeService.getOffices();
+
+        assertEquals(2, result.size());
+        assertEquals(101, result.get(0).getRoomNumber());
+        assertEquals(102, result.get(1).getRoomNumber());
+
+        verify(officeRepository).findAll();
     }
 
     @Test
-    void shouldThrowIfOfficeNotFound() {
-        OfficeNotFoundException ex = assertThrows(OfficeNotFoundException.class,
-                () -> officeService.getOfficeById(999L));
+    void shouldGetOfficeById() throws Exception {
+        Office office = new Office(101);
+        setId(office, 5L);
+
+        when(officeRepository.findById(5L)).thenReturn(Optional.of(office));
+
+        OfficeDto result = officeService.getOfficeById(5L);
+
+        assertEquals(101, result.getRoomNumber());
+        assertEquals(5L, result.getId());
+        verify(officeRepository).findById(5L);
+    }
+
+    @Test
+    void getOfficeByIdShouldThrowWhenNotFound() {
+        when(officeRepository.findById(999L)).thenReturn(Optional.empty());
+
+        OfficeNotFoundException ex = assertThrows(
+                OfficeNotFoundException.class,
+                () -> officeService.getOfficeById(999L)
+        );
 
         assertEquals("Office with ID: 999 not found.", ex.getMessage());
+        verify(officeRepository).findById(999L);
     }
 
     @Test
-    void shouldGetOffices() throws Exception {
-        createOffice(400);
-        createOffice(401);
+    void shouldDeleteOfficeWhenNoDuties() throws Exception {
+        Office office = new Office(101);
+        setDuties(office, List.of());
 
-        List<Office> offices = officeService.getOffices();
+        when(officeRepository.findById(1L)).thenReturn(Optional.of(office));
 
-        assertTrue(offices.size() >= 2);
+        assertDoesNotThrow(() -> officeService.deleteOfficeById(1L));
+
+        verify(officeRepository).findById(1L);
+        verify(officeRepository).delete(office);
     }
 
     @Test
-    void shouldDeleteOfficeSuccessfullyWhenNoDuties() throws Exception {
-        Office office = createOffice(500);
+    void deleteOfficeShouldThrowWhenNotFound() {
+        when(officeRepository.findById(1L)).thenReturn(Optional.empty());
 
-        officeService.deleteOfficeById(office.getId());
+        OfficeNotFoundException ex = assertThrows(
+                OfficeNotFoundException.class,
+                () -> officeService.deleteOfficeById(1L)
+        );
 
-        assertFalse(officeRepository.findById(office.getId()).isPresent());
+        assertEquals("Office with ID: 1 not found.", ex.getMessage());
+        verify(officeRepository).findById(1L);
+        verify(officeRepository, never()).delete(any());
     }
 
     @Test
-    void shouldThrowWhenDeletingNonExistingOffice() {
-        OfficeNotFoundException ex = assertThrows(OfficeNotFoundException.class,
-                () -> officeService.deleteOfficeById(999L));
+    void deleteOfficeShouldThrowWhenOfficeHasDuties() throws Exception {
+        Office office = new Office(101);
+        Duty duty = mock(Duty.class);
+        setDuties(office, List.of(duty));
 
-        assertEquals("Office with ID: 999 not found.", ex.getMessage());
+        when(officeRepository.findById(1L)).thenReturn(Optional.of(office));
+
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class,
+                () -> officeService.deleteOfficeById(1L)
+        );
+
+        assertEquals("You can't delete an office with assigned duties ", ex.getMessage());
+        verify(officeRepository, never()).delete(any());
     }
 }

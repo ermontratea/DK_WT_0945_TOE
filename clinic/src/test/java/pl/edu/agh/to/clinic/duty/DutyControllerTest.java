@@ -4,18 +4,25 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import pl.edu.agh.to.clinic.exceptions.DutyNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.GlobalExceptionHandler;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = DutyController.class)
@@ -28,34 +35,47 @@ class DutyControllerTest {
     @MockBean
     private DutyService dutyService;
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     void shouldGetAllDuties() throws Exception {
-        Duty duty = new Duty();
-        when(dutyService.getDuties()).thenReturn(List.of(duty));
+        DutyDto d1 = new DutyDto();
+        d1.setId(1L);
+        d1.setDoctorId(1L);
+        d1.setOfficeId(2L);
+        d1.setStartTime(LocalDateTime.of(2025,1,1,8,0));
+        d1.setEndTime(LocalDateTime.of(2025,1,1,12,0));
+
+        when(dutyService.getDuties()).thenReturn(List.of(d1));
 
         mockMvc.perform(get("/duties"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1));
-
-        verify(dutyService).getDuties();
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].doctorId", is(1)))
+                .andExpect(jsonPath("$[0].officeId", is(2)));
     }
 
     @Test
     void shouldGetDutyById() throws Exception {
-        Duty duty = new Duty();
-        when(dutyService.getDutyById(1L)).thenReturn(duty);
+        DutyDto dto = new DutyDto();
+        dto.setId(5L);
+        dto.setDoctorId(1L);
+        dto.setOfficeId(2L);
+        dto.setStartTime(LocalDateTime.of(2025,1,1,8,0));
+        dto.setEndTime(LocalDateTime.of(2025,1,1,12,0));
 
-        mockMvc.perform(get("/duties/1"))
-                .andExpect(status().isOk());
+        when(dutyService.getDutyById(5L)).thenReturn(dto);
 
-        verify(dutyService).getDutyById(1L);
+        mockMvc.perform(get("/duties/5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(5)))
+                .andExpect(jsonPath("$.doctorId", is(1)))
+                .andExpect(jsonPath("$.officeId", is(2)));
     }
 
     @Test
-    void shouldReturnNotFoundWhenDutyDoesNotExist() throws Exception {
+    void shouldReturnNotFoundWhenDutyMissing() throws Exception {
         when(dutyService.getDutyById(999L))
                 .thenThrow(new DutyNotFoundException(999L));
 
@@ -67,62 +87,28 @@ class DutyControllerTest {
 
     @Test
     void shouldAddDuty() throws Exception {
-        String json = """
-        {
-          "doctor": {
-            "firstName": "Jan",
-            "lastName": "Kowalski",
-            "pesel": "12345678901",
-            "address": "Krakow",
-            "specialization": "CARDIOLOGY"
-          },
-          "office": {
-            "roomNumber": 101
-          },
-          "startTime": "2025-01-01T10:00:00",
-          "endTime": "2025-01-01T12:00:00"
-        }
-        """;
+        DutyDto request = new DutyDto();
+        request.setDoctorId(1L);
+        request.setOfficeId(2L);
+        request.setStartTime(LocalDateTime.of(2025,1,1,8,0));
+        request.setEndTime(LocalDateTime.of(2025,1,1,12,0));
 
-        Duty returned = new Duty();
-        when(dutyService.addDuty(any(Duty.class))).thenReturn(returned);
+        DutyDto response = new DutyDto();
+        response.setId(10L);
+        response.setDoctorId(1L);
+        response.setOfficeId(2L);
+        response.setStartTime(request.getStartTime());
+        response.setEndTime(request.getEndTime());
+
+        when(dutyService.addDuty(any(DutyDto.class))).thenReturn(response);
 
         mockMvc.perform(post("/duties")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isOk());
-
-        verify(dutyService).addDuty(any(Duty.class));
-    }
-
-    @Test
-    void shouldReturnConflictWhenAddingDutyFails() throws Exception {
-        String json = """
-        {
-          "doctor": {
-            "firstName": "Jan",
-            "lastName": "Kowalski",
-            "pesel": "12345678901",
-            "address": "Krakow",
-            "specialization": "CARDIOLOGY"
-          },
-          "office": {
-            "roomNumber": 101
-          },
-          "startTime": "2025-01-01T10:00:00",
-          "endTime": "2025-01-01T12:00:00"
-        }
-        """;
-
-        when(dutyService.addDuty(any(Duty.class)))
-                .thenThrow(new IllegalStateException("Office is already occupied during these hours!"));
-
-        mockMvc.perform(post("/duties")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error")
-                        .value("Office is already occupied during these hours!"));
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(10)))
+                .andExpect(jsonPath("$.doctorId", is(1)))
+                .andExpect(jsonPath("$.officeId", is(2)));
     }
 
     @Test

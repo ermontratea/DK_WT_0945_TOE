@@ -1,203 +1,281 @@
 package pl.edu.agh.to.clinic.duty;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import pl.edu.agh.to.clinic.doctor.Doctor;
 import pl.edu.agh.to.clinic.doctor.DoctorRepository;
-import pl.edu.agh.to.clinic.doctor.Specialization;
+import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.DutyNotFoundException;
+import pl.edu.agh.to.clinic.exceptions.OfficeNotFoundException;
 import pl.edu.agh.to.clinic.office.Office;
 import pl.edu.agh.to.clinic.office.OfficeRepository;
 
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@AutoConfigureTestDatabase
-@Transactional
+@ExtendWith(MockitoExtension.class)
 class DutyServiceTest {
 
-    @Autowired
+    @Mock
     private DutyRepository dutyRepository;
 
-    @Autowired
-    private DutyService dutyService;
-
-    @Autowired
+    @Mock
     private DoctorRepository doctorRepository;
 
-    @Autowired
+    @Mock
     private OfficeRepository officeRepository;
 
-    private Office createOffice(int roomNumber) throws Exception {
-        Office office = new Office();
-        Field roomField = Office.class.getDeclaredField("roomNumber");
-        roomField.setAccessible(true);
-        roomField.setInt(office, roomNumber);
-        return officeRepository.saveAndFlush(office);
-    }
+    @InjectMocks
+    private DutyService dutyService;
 
-    private Duty buildDuty(Doctor doctor, Office office,
-                           LocalDateTime start, LocalDateTime end) throws Exception {
-        Duty duty = new Duty();
-
-        Field doctorField = Duty.class.getDeclaredField("doctor");
-        doctorField.setAccessible(true);
-        doctorField.set(duty, doctor);
-
-        Field officeField = Duty.class.getDeclaredField("office");
-        officeField.setAccessible(true);
-        officeField.set(duty, office);
-
-        Field startField = Duty.class.getDeclaredField("startTime");
-        startField.setAccessible(true);
-        startField.set(duty, start);
-
-        Field endField = Duty.class.getDeclaredField("endTime");
-        endField.setAccessible(true);
-        endField.set(duty, end);
-
-        return duty;
-    }
-
-    private Duty createAndSaveDuty(Doctor doctor, Office office,
-                                   LocalDateTime start, LocalDateTime end) throws Exception {
-        Duty duty = buildDuty(doctor, office, start, end);
-        return dutyRepository.saveAndFlush(duty);
+    private void setId(Object entity, long id) throws Exception {
+        Class<?> cls = entity.getClass();
+        Field idField = null;
+        while (cls != null && idField == null) {
+            try {
+                idField = cls.getDeclaredField("id");
+            } catch (NoSuchFieldException ignored) {
+                cls = cls.getSuperclass();
+            }
+        }
+        if (idField == null) {
+            throw new IllegalStateException("No id field found");
+        }
+        idField.setAccessible(true);
+        idField.set(entity, id);
     }
 
     @Test
     void shouldAddDutySuccessfully() throws Exception {
-        Doctor doctor = doctorRepository.saveAndFlush(
-                new Doctor("Jan", "Kowalski", "12345678901", Specialization.CARDIOLOGY, "Kraków"));
-        Office office = createOffice(100);
+        LocalDateTime start = LocalDateTime.of(2025, 1, 1, 8, 0);
+        LocalDateTime end   = LocalDateTime.of(2025, 1, 1, 12, 0);
 
-        LocalDateTime start = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0);
+        DutyDto dto = new DutyDto();
+        dto.setDoctorId(1L);
+        dto.setOfficeId(2L);
+        dto.setStartTime(start);
+        dto.setEndTime(end);
+
+        Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901", null, "Kraków");
+        Office office = new Office(101);
+
+        setId(doctor, 1L);
+        setId(office, 2L);
+
+        when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
+        when(officeRepository.findById(2L)).thenReturn(Optional.of(office));
+        when(dutyRepository.existsByDoctorAndStartTimeBeforeAndEndTimeAfter(
+                any(), any(), any())
+        ).thenReturn(false);
+        when(dutyRepository.existsByOfficeAndStartTimeBeforeAndEndTimeAfter(
+                any(), any(), any())
+        ).thenReturn(false);
+
+        Duty saved = new Duty(doctor, office, start, end);
+        setId(saved, 10L);
+
+        when(dutyRepository.save(any(Duty.class))).thenReturn(saved);
+
+        DutyDto result = dutyService.addDuty(dto);
+
+        assertEquals(10L, result.getId());
+        assertEquals(1L, result.getDoctorId());
+        assertEquals(2L, result.getOfficeId());
+        assertEquals(start, result.getStartTime());
+        assertEquals(end, result.getEndTime());
+
+        verify(doctorRepository).findById(1L);
+        verify(officeRepository).findById(2L);
+        verify(dutyRepository).existsByDoctorAndStartTimeBeforeAndEndTimeAfter(
+                doctor, end, start);
+        verify(dutyRepository).existsByOfficeAndStartTimeBeforeAndEndTimeAfter(
+                office, end, start);
+        verify(dutyRepository).save(any(Duty.class));
+    }
+
+    @Test
+    void shouldThrowWhenDoctorNotFound() {
+        DutyDto dto = new DutyDto();
+        dto.setDoctorId(1L);
+        dto.setOfficeId(2L);
+        dto.setStartTime(LocalDateTime.now());
+        dto.setEndTime(LocalDateTime.now().plusHours(4));
+
+        when(doctorRepository.findById(1L)).thenReturn(Optional.empty());
+
+        DoctorNotFoundException ex = assertThrows(
+                DoctorNotFoundException.class,
+                () -> dutyService.addDuty(dto)
+        );
+
+        assertEquals("Doctor with ID: 1 not found.", ex.getMessage());
+        verify(doctorRepository).findById(1L);
+        verifyNoInteractions(officeRepository);
+        verify(dutyRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowWhenOfficeNotFound() {
+        DutyDto dto = new DutyDto();
+        dto.setDoctorId(1L);
+        dto.setOfficeId(2L);
+        dto.setStartTime(LocalDateTime.now());
+        dto.setEndTime(LocalDateTime.now().plusHours(4));
+
+        Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901", null, "Kraków");
+        when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
+        when(officeRepository.findById(2L)).thenReturn(Optional.empty());
+
+        OfficeNotFoundException ex = assertThrows(
+                OfficeNotFoundException.class,
+                () -> dutyService.addDuty(dto)
+        );
+
+        assertEquals("Office with ID: 2 not found.", ex.getMessage());
+        verify(doctorRepository).findById(1L);
+        verify(officeRepository).findById(2L);
+        verify(dutyRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowWhenDoctorBusy() {
+        LocalDateTime start = LocalDateTime.now();
         LocalDateTime end = start.plusHours(4);
 
-        Duty duty = buildDuty(doctor, office, start, end);
+        DutyDto dto = new DutyDto();
+        dto.setDoctorId(1L);
+        dto.setOfficeId(2L);
+        dto.setStartTime(start);
+        dto.setEndTime(end);
 
-        Duty saved = dutyService.addDuty(duty);
+        Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901", null, "Kraków");
+        Office office = new Office(101);
 
-        assertNotNull(saved);
-        assertNotNull(saved.getId());
-        assertEquals(doctor.getId(), saved.getDoctor().getId());
-        assertEquals(office.getRoomNumber(), saved.getOffice().getRoomNumber());
-    }
+        when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
+        when(officeRepository.findById(2L)).thenReturn(Optional.of(office));
+        when(dutyRepository.existsByDoctorAndStartTimeBeforeAndEndTimeAfter(
+                doctor, end, start)
+        ).thenReturn(true);
 
-    @Test
-    void shouldThrowIfDoctorBusy() throws Exception {
-        Doctor doctor = doctorRepository.saveAndFlush(
-                new Doctor("Jan", "Kowalski", "22222222222", Specialization.CARDIOLOGY, "Kraków"));
-        Office office1 = createOffice(200);
-        Office office2 = createOffice(201);
-
-        LocalDateTime start1 = LocalDateTime.now().plusDays(1).withHour(8);
-        LocalDateTime end1 = start1.plusHours(4);
-
-        createAndSaveDuty(doctor, office1, start1, end1);
-
-        LocalDateTime start2 = start1.plusHours(1);
-        LocalDateTime end2 = start2.plusHours(3);
-
-        Duty overlapping = buildDuty(doctor, office2, start2, end2);
-
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> dutyService.addDuty(overlapping));
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class,
+                () -> dutyService.addDuty(dto)
+        );
 
         assertEquals("Doctor already has a duty assigned during these hours!", ex.getMessage());
+        verify(dutyRepository, never()).save(any());
     }
 
     @Test
-    void shouldThrowIfOfficeBusy() throws Exception {
-        Doctor doctor1 = doctorRepository.saveAndFlush(
-                new Doctor("Jan", "Kowalski", "33333333333", Specialization.CARDIOLOGY, "Kraków"));
-        Doctor doctor2 = doctorRepository.saveAndFlush(
-                new Doctor("Anna", "Nowak", "44444444444", Specialization.DERMATOLOGY, "Warszawa"));
-        Office office = createOffice(300);
+    void shouldThrowWhenOfficeBusy() {
+        LocalDateTime start = LocalDateTime.now();
+        LocalDateTime end = start.plusHours(4);
 
-        LocalDateTime start1 = LocalDateTime.now().plusDays(2).withHour(9);
-        LocalDateTime end1 = start1.plusHours(3);
+        DutyDto dto = new DutyDto();
+        dto.setDoctorId(1L);
+        dto.setOfficeId(2L);
+        dto.setStartTime(start);
+        dto.setEndTime(end);
 
-        createAndSaveDuty(doctor1, office, start1, end1);
+        Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901", null, "Kraków");
+        Office office = new Office(101);
 
-        LocalDateTime start2 = start1.plusHours(1);
-        LocalDateTime end2 = start2.plusHours(2);
+        when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
+        when(officeRepository.findById(2L)).thenReturn(Optional.of(office));
+        when(dutyRepository.existsByDoctorAndStartTimeBeforeAndEndTimeAfter(
+                doctor, end, start)
+        ).thenReturn(false);
+        when(dutyRepository.existsByOfficeAndStartTimeBeforeAndEndTimeAfter(
+                office, end, start)
+        ).thenReturn(true);
 
-        Duty overlapping = buildDuty(doctor2, office, start2, end2);
-
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> dutyService.addDuty(overlapping));
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class,
+                () -> dutyService.addDuty(dto)
+        );
 
         assertEquals("Office is already occupied during these hours!", ex.getMessage());
+        verify(dutyRepository, never()).save(any());
     }
 
     @Test
-    void shouldGetDuties() throws Exception {
-        Doctor doctor = doctorRepository.saveAndFlush(
-                new Doctor("Jan", "Kowalski", "55555555555", Specialization.CARDIOLOGY, "Kraków"));
-        Office office = createOffice(400);
-        LocalDateTime start = LocalDateTime.now().plusDays(3).withHour(10);
-        LocalDateTime end = start.plusHours(2);
+    void shouldReturnAllDuties() {
+        Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901", null, "Kraków");
+        Office office = new Office(101);
+        LocalDateTime start = LocalDateTime.of(2025, 1, 1, 8, 0);
+        LocalDateTime end   = LocalDateTime.of(2025, 1, 1, 12, 0);
 
-        createAndSaveDuty(doctor, office, start, end);
+        Duty duty = new Duty(doctor, office, start, end);
 
-        List<Duty> duties = dutyService.getDuties();
+        when(dutyRepository.findAll()).thenReturn(List.of(duty));
 
-        assertFalse(duties.isEmpty());
+        List<DutyDto> result = dutyService.getDuties();
+
+        assertEquals(1, result.size());
+        assertEquals(start, result.get(0).getStartTime());
+        assertEquals(end, result.get(0).getEndTime());
+        verify(dutyRepository).findAll();
     }
 
     @Test
-    void shouldGetDutyByIdSuccessfully() throws Exception {
-        Doctor doctor = doctorRepository.saveAndFlush(
-                new Doctor("Jan", "Kowalski", "66666666666", Specialization.CARDIOLOGY, "Kraków"));
-        Office office = createOffice(500);
-        LocalDateTime start = LocalDateTime.now().plusDays(4).withHour(11);
-        LocalDateTime end = start.plusHours(2);
+    void shouldGetDutyById() {
+        Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901", null, "Kraków");
+        Office office = new Office(101);
+        LocalDateTime start = LocalDateTime.of(2025, 1, 1, 8, 0);
+        LocalDateTime end   = LocalDateTime.of(2025, 1, 1, 12, 0);
+        Duty duty = new Duty(doctor, office, start, end);
 
-        Duty duty = createAndSaveDuty(doctor, office, start, end);
+        when(dutyRepository.findById(1L)).thenReturn(Optional.of(duty));
 
-        Duty found = dutyService.getDutyById(duty.getId());
+        DutyDto result = dutyService.getDutyById(1L);
 
-        assertEquals(duty.getId(), found.getId());
-        assertEquals(doctor.getId(), found.getDoctor().getId());
-        assertEquals(office.getRoomNumber(), found.getOffice().getRoomNumber());
+        assertEquals(start, result.getStartTime());
+        assertEquals(end, result.getEndTime());
+        verify(dutyRepository).findById(1L);
     }
 
     @Test
-    void shouldThrowIfDutyNotFound() {
-        DutyNotFoundException ex = assertThrows(DutyNotFoundException.class,
-                () -> dutyService.getDutyById(999L));
+    void getDutyByIdShouldThrowWhenNotFound() {
+        when(dutyRepository.findById(999L)).thenReturn(Optional.empty());
+
+        DutyNotFoundException ex = assertThrows(
+                DutyNotFoundException.class,
+                () -> dutyService.getDutyById(999L)
+        );
 
         assertEquals("Duty with ID: 999 not found.", ex.getMessage());
+        verify(dutyRepository).findById(999L);
     }
 
     @Test
-    void shouldDeleteDutySuccessfully() throws Exception {
-        Doctor doctor = doctorRepository.saveAndFlush(
-                new Doctor("Jan", "Kowalski", "77777777777", Specialization.CARDIOLOGY, "Kraków"));
-        Office office = createOffice(600);
-        LocalDateTime start = LocalDateTime.now().plusDays(5).withHour(12);
-        LocalDateTime end = start.plusHours(2);
+    void shouldDeleteDutyById() {
+        when(dutyRepository.existsById(1L)).thenReturn(true);
 
-        Duty duty = createAndSaveDuty(doctor, office, start, end);
+        assertDoesNotThrow(() -> dutyService.deleteDutyById(1L));
 
-        dutyService.deleteDutyById(duty.getId());
-
-        assertFalse(dutyRepository.findById(duty.getId()).isPresent());
+        verify(dutyRepository).existsById(1L);
+        verify(dutyRepository).deleteById(1L);
     }
 
     @Test
-    void shouldThrowWhenDeletingNonExistingDuty() {
-        DutyNotFoundException ex = assertThrows(DutyNotFoundException.class,
-                () -> dutyService.deleteDutyById(999L));
+    void deleteDutyShouldThrowWhenNotFound() {
+        when(dutyRepository.existsById(999L)).thenReturn(false);
+
+        DutyNotFoundException ex = assertThrows(
+                DutyNotFoundException.class,
+                () -> dutyService.deleteDutyById(999L)
+        );
 
         assertEquals("Duty with ID: 999 not found.", ex.getMessage());
+        verify(dutyRepository).existsById(999L);
+        verify(dutyRepository, never()).deleteById(anyLong());
     }
 }

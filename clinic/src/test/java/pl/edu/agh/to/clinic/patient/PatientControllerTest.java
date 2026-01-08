@@ -1,69 +1,139 @@
 package pl.edu.agh.to.clinic.patient;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
+import pl.edu.agh.to.clinic.exceptions.GlobalExceptionHandler;
+import pl.edu.agh.to.clinic.exceptions.PatientNotFoundException;
+import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
-import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import java.util.List;
+
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@AutoConfigureTestDatabase
-@Transactional
+@WebMvcTest(controllers = PatientController.class)
+@Import(GlobalExceptionHandler.class)
 class PatientControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
+    @MockBean
+    private PatientService patientService;
+
     @Autowired
-    private PatientRepository patientRepository;
+    private ObjectMapper objectMapper;
 
     @Test
-    void shouldAddPatient() throws Exception {
-        String json = """
-        {
-          "firstName": "Jan",
-          "lastName": "Kowalski",
-          "pesel": "12345678901",
-          "address": "Kraków"
-        }
-        """;
+    void shouldGetAllPatients() throws Exception {
+        PatientDto p1 = new PatientDto();
+        p1.setId(1L);
+        p1.setFirstName("Jan");
+        p1.setLastName("Kowalski");
+        p1.setPesel("12345678901");
+        p1.setAddress("Kraków");
 
-        mockMvc.perform(post("/patients")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
+        PatientDto p2 = new PatientDto();
+        p2.setId(2L);
+        p2.setFirstName("Anna");
+        p2.setLastName("Nowak");
+        p2.setPesel("11111111111");
+        p2.setAddress("Warszawa");
+
+        when(patientService.getPatients()).thenReturn(List.of(p1, p2));
+
+        mockMvc.perform(get("/patients"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.firstName").value("Jan"))
-                .andExpect(jsonPath("$.lastName").value("Kowalski"))
-                .andExpect(jsonPath("$.pesel").value("12345678901"))
-                .andExpect(jsonPath("$.address").value("Kraków"));
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].firstName", is("Jan")))
+                .andExpect(jsonPath("$[1].firstName", is("Anna")));
     }
 
     @Test
-    void shouldReturnErrorWhenPeselExists() throws Exception {
-        Patient p = new Patient("Jan", "Nowak", "12345678901", "Warszawa");
-        patientRepository.saveAndFlush(p);
+    void shouldGetPatientById() throws Exception {
+        PatientDto dto = new PatientDto();
+        dto.setId(5L);
+        dto.setFirstName("Anna");
+        dto.setLastName("Nowak");
+        dto.setPesel("33333333333");
+        dto.setAddress("Warszawa");
 
-        String json = """
-        {
-          "firstName": "Jan",
-          "lastName": "Kowalski",
-          "pesel": "12345678901",
-          "address": "Kraków"
-        }
-        """;
+        when(patientService.getPatientById(5L)).thenReturn(dto);
+
+        mockMvc.perform(get("/patients/5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(5)))
+                .andExpect(jsonPath("$.firstName", is("Anna")))
+                .andExpect(jsonPath("$.lastName", is("Nowak")))
+                .andExpect(jsonPath("$.pesel", is("33333333333")))
+                .andExpect(jsonPath("$.address", is("Warszawa")));
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenPatientMissing() throws Exception {
+        when(patientService.getPatientById(999L))
+                .thenThrow(new PatientNotFoundException(999L));
+
+        mockMvc.perform(get("/patients/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error")
+                        .value("Patient with ID: 999 not found."));
+    }
+
+    @Test
+    void shouldCreatePatient() throws Exception {
+        PatientDto request = new PatientDto();
+        request.setFirstName("Jan");
+        request.setLastName("Kowalski");
+        request.setPesel("12345678901");
+        request.setAddress("Kraków");
+
+        PatientDto response = new PatientDto();
+        response.setId(10L);
+        response.setFirstName("Jan");
+        response.setLastName("Kowalski");
+        response.setPesel("12345678901");
+        response.setAddress("Kraków");
+
+        when(patientService.addPatient(any(PatientDto.class))).thenReturn(response);
 
         mockMvc.perform(post("/patients")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(10)))
+                .andExpect(jsonPath("$.firstName", is("Jan")))
+                .andExpect(jsonPath("$.lastName", is("Kowalski")));
+    }
+
+    @Test
+    void shouldReturnConflictWhenPeselDuplicated() throws Exception {
+        PatientDto request = new PatientDto();
+        request.setFirstName("Jan");
+        request.setLastName("Kowalski");
+        request.setPesel("12345678901");
+        request.setAddress("Kraków");
+
+        when(patientService.addPatient(any(PatientDto.class)))
+                .thenThrow(new PeselDuplicationException("12345678901"));
+
+        mockMvc.perform(post("/patients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error")
                         .value("Person with PESEL: 12345678901 already exists."));
@@ -72,13 +142,13 @@ class PatientControllerTest {
     @Test
     void shouldReturnValidationErrorsForInvalidPatient() throws Exception {
         String json = """
-        {
-          "firstName": "",
-          "lastName": "",
-          "pesel": "123",
-          "address": ""
-        }
-        """;
+                {
+                  "firstName": "",
+                  "lastName": "",
+                  "pesel": "123",
+                  "address": ""
+                }
+                """;
 
         mockMvc.perform(post("/patients")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -91,57 +161,19 @@ class PatientControllerTest {
     }
 
     @Test
-    void shouldReturnErrorForNonExistingPatient() throws Exception {
-        mockMvc.perform(get("/patients/999"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("Patient with ID: 999 not found."));
-    }
-
-    @Test
     void shouldDeletePatient() throws Exception {
-        Patient p = new Patient("Marta", "Zielińska", "22222222222", "Gdańsk");
-        Patient saved = patientRepository.saveAndFlush(p);
-
-        mockMvc.perform(delete("/patients/" + saved.getId()))
+        mockMvc.perform(delete("/patients/1"))
                 .andExpect(status().isOk());
-
-        mockMvc.perform(get("/patients/" + saved.getId()))
-                .andExpect(status().isNotFound());
     }
 
     @Test
-    void shouldReturnErrorWhenDeletingNonExistingPatient() throws Exception {
+    void shouldReturnNotFoundWhenDeletingNonExistingPatient() throws Exception {
+        doThrow(new PatientNotFoundException(999L))
+                .when(patientService).deletePatientById(999L);
+
         mockMvc.perform(delete("/patients/999"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("Patient with ID: 999 not found."));
-    }
-
-    @Test
-    void shouldGetPatientsListWithoutAddressAndPesel() throws Exception {
-        patientRepository.saveAndFlush(
-                new Patient("Anna", "Nowak", "11111111111", "Warszawa"));
-        patientRepository.saveAndFlush(
-                new Patient("Jan", "Kowalski", "22222222222", "Kraków"));
-
-        mockMvc.perform(get("/patients"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(2))))
-                .andExpect(jsonPath("$[*].firstName", hasItems("Anna", "Jan")))
-                .andExpect(jsonPath("$[*].lastName", hasItems("Nowak", "Kowalski")))
-                .andExpect(jsonPath("$[*].address").doesNotExist())
-                .andExpect(jsonPath("$[*].pesel").doesNotExist());
-    }
-
-    @Test
-    void shouldGetPatientByIdWithAddressAndPesel() throws Exception {
-        Patient p = new Patient("Anna", "Nowak", "33333333333", "Warszawa");
-        Patient saved = patientRepository.saveAndFlush(p);
-
-        mockMvc.perform(get("/patients/" + saved.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.firstName").value("Anna"))
-                .andExpect(jsonPath("$.lastName").value("Nowak"))
-                .andExpect(jsonPath("$.address").value("Warszawa"))
-                .andExpect(jsonPath("$.pesel").value("33333333333"));
+                .andExpect(jsonPath("$.error")
+                        .value("Patient with ID: 999 not found."));
     }
 }

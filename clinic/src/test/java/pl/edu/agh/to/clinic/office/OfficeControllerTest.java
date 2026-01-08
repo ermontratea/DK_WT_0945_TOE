@@ -1,131 +1,135 @@
 package pl.edu.agh.to.clinic.office;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
+import pl.edu.agh.to.clinic.exceptions.GlobalExceptionHandler;
+import pl.edu.agh.to.clinic.exceptions.OfficeNotFoundException;
+import pl.edu.agh.to.clinic.exceptions.RoomNumberDuplicationException;
 
-import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import java.util.List;
+
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@AutoConfigureTestDatabase
-@Transactional
+@WebMvcTest(controllers = OfficeController.class)
+@Import(GlobalExceptionHandler.class)
 class OfficeControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    @MockBean
+    private OfficeService officeService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
-    void shouldAddOffice() throws Exception {
-        String json = """
-        { "roomNumber": 101 }
-        """;
+    void shouldGetAllOffices() throws Exception {
+        OfficeDto o1 = new OfficeDto();
+        o1.setId(1L);
+        o1.setRoomNumber(101);
 
-        mockMvc.perform(post("/offices")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.roomNumber").value(101));
-    }
+        OfficeDto o2 = new OfficeDto();
+        o2.setId(2L);
+        o2.setRoomNumber(102);
 
-    @Test
-    void shouldReturnErrorWhenRoomNumberExists() throws Exception {
-        String json = """
-        { "roomNumber": 200 }
-        """;
-
-        mockMvc.perform(post("/offices")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(post("/offices")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error")
-                        .value("Office with room number: 200 already exists."));
-    }
-
-    @Test
-    void shouldGetOfficesList() throws Exception {
-        String json1 = "{ \"roomNumber\": 300 }";
-        String json2 = "{ \"roomNumber\": 301 }";
-
-        mockMvc.perform(post("/offices")
-                        .contentType(MediaType.APPLICATION_JSON).content(json1))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(post("/offices")
-                        .contentType(MediaType.APPLICATION_JSON).content(json2))
-                .andExpect(status().isOk());
+        when(officeService.getOffices()).thenReturn(List.of(o1, o2));
 
         mockMvc.perform(get("/offices"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(2))))
-                .andExpect(jsonPath("$[*].roomNumber", hasItems(300, 301)))
-                .andExpect(jsonPath("$[*].duties").doesNotExist());
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].roomNumber", is(101)))
+                .andExpect(jsonPath("$[1].roomNumber", is(102)));
     }
 
     @Test
     void shouldGetOfficeById() throws Exception {
-        String json = "{ \"roomNumber\": 400 }";
+        OfficeDto dto = new OfficeDto();
+        dto.setId(1L);
+        dto.setRoomNumber(101);
 
-        String body = mockMvc.perform(post("/offices")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
+        when(officeService.getOfficeById(1L)).thenReturn(dto);
+
+        mockMvc.perform(get("/offices/1"))
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-
-        long id = mapper.readTree(body).get("id").asLong();
-
-        mockMvc.perform(get("/offices/" + id))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.roomNumber").value(400));
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.roomNumber", is(101)));
     }
 
     @Test
-    void shouldReturnErrorForNonExistingOffice() throws Exception {
+    void shouldReturnNotFoundWhenOfficeMissing() throws Exception {
+        when(officeService.getOfficeById(999L))
+                .thenThrow(new OfficeNotFoundException(999L));
+
         mockMvc.perform(get("/offices/999"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("Office with ID: 999 not found."));
+                .andExpect(jsonPath("$.error")
+                        .value("Office with ID: 999 not found."));
+    }
+
+    @Test
+    void shouldCreateOffice() throws Exception {
+        OfficeDto request = new OfficeDto();
+        request.setRoomNumber(101);
+
+        OfficeDto response = new OfficeDto();
+        response.setId(5L);
+        response.setRoomNumber(101);
+
+        when(officeService.addOffice(any(OfficeDto.class))).thenReturn(response);
+
+        mockMvc.perform(post("/offices")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(5)))
+                .andExpect(jsonPath("$.roomNumber", is(101)));
+    }
+
+    @Test
+    void shouldReturnConflictWhenRoomNumberDuplicated() throws Exception {
+        OfficeDto request = new OfficeDto();
+        request.setRoomNumber(101);
+
+        when(officeService.addOffice(any(OfficeDto.class)))
+                .thenThrow(new RoomNumberDuplicationException(101));
+
+        mockMvc.perform(post("/offices")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error")
+                        .value("Office with room number: 101 already exists."));
     }
 
     @Test
     void shouldDeleteOffice() throws Exception {
-        String json = "{ \"roomNumber\": 500 }";
-
-        String body = mockMvc.perform(post("/offices")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-
-        long id = mapper.readTree(body).get("id").asLong();
-
-        mockMvc.perform(delete("/offices/" + id))
+        mockMvc.perform(delete("/offices/1"))
                 .andExpect(status().isOk());
-
-        mockMvc.perform(get("/offices/" + id))
-                .andExpect(status().isNotFound());
     }
 
     @Test
-    void shouldReturnErrorWhenDeletingNonExistingOffice() throws Exception {
+    void shouldReturnNotFoundWhenDeletingNonExistingOffice() throws Exception {
+        doThrow(new OfficeNotFoundException(999L))
+                .when(officeService).deleteOfficeById(999L);
+
         mockMvc.perform(delete("/offices/999"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("Office with ID: 999 not found."));
+                .andExpect(jsonPath("$.error")
+                        .value("Office with ID: 999 not found."));
     }
 }

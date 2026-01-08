@@ -18,10 +18,8 @@ class PatientTest {
     }
 
     @Test
-    void shouldUseNoArgsConstructorAndSetters() {
-        Patient p = new Patient();
-
-        assertNull(p.getId());
+    void shouldUpdatePatientWithSetters() {
+        Patient p = new Patient("X", "Y", "99999999999", "Old");
 
         p.setFirstName("Anna");
         p.setLastName("Nowak");

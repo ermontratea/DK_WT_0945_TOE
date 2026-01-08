@@ -1,100 +1,137 @@
 package pl.edu.agh.to.clinic.patient;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import pl.edu.agh.to.clinic.exceptions.PatientNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@AutoConfigureTestDatabase
-@Transactional
+@ExtendWith(MockitoExtension.class)
 class PatientServiceTest {
 
-    @Autowired
+    @Mock
     private PatientRepository patientRepository;
 
-    @Autowired
+    @InjectMocks
     private PatientService patientService;
 
     @Test
     void shouldAddPatientSuccessfully() {
-        Patient p = new Patient("Jan", "Kowalski", "12345678901", "Kraków");
+        PatientDto dto = new PatientDto();
+        dto.setFirstName("Jan");
+        dto.setLastName("Kowalski");
+        dto.setPesel("12345678901");
+        dto.setAddress("Kraków");
 
-        Patient saved = patientService.addPatient(p);
+        when(patientRepository.existsByPesel("12345678901")).thenReturn(false);
+                when(patientRepository.save(any(Patient.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, Patient.class));
 
-        assertNotNull(saved.getId());
+        PatientDto saved = patientService.addPatient(dto);
+
         assertEquals("Jan", saved.getFirstName());
         assertEquals("Kowalski", saved.getLastName());
         assertEquals("12345678901", saved.getPesel());
         assertEquals("Kraków", saved.getAddress());
+
+        verify(patientRepository).existsByPesel("12345678901");
+        verify(patientRepository).save(any(Patient.class));
     }
 
     @Test
     void shouldThrowIfPeselExists() {
-        Patient p1 = new Patient("Jan", "Kowalski", "12345678901", "Kraków");
-        patientService.addPatient(p1);
+        PatientDto dto = new PatientDto();
+        dto.setFirstName("Jan");
+        dto.setLastName("Kowalski");
+        dto.setPesel("12345678901");
+        dto.setAddress("Kraków");
 
-        Patient p2 = new Patient("Anna", "Nowak", "12345678901", "Warszawa");
+        when(patientRepository.existsByPesel("12345678901")).thenReturn(true);
 
-        PeselDuplicationException ex = assertThrows(PeselDuplicationException.class,
-                () -> patientService.addPatient(p2));
+        PeselDuplicationException ex = assertThrows(
+                PeselDuplicationException.class,
+                () -> patientService.addPatient(dto)
+        );
 
         assertEquals("Person with PESEL: 12345678901 already exists.", ex.getMessage());
+        verify(patientRepository).existsByPesel("12345678901");
+        verify(patientRepository, never()).save(any());
     }
 
     @Test
-    void shouldGetPatientByIdSuccessfully() {
-        Patient p = new Patient("Anna", "Nowak", "11111111111", "Warszawa");
-        Patient saved = patientService.addPatient(p);
+    void shouldGetPatientById() {
+        Patient patient = new Patient("Anna", "Nowak", "11111111111", "Warszawa");
 
-        Patient found = patientService.getPatientById(saved.getId());
+        when(patientRepository.findById(1L)).thenReturn(Optional.of(patient));
+
+        PatientDto found = patientService.getPatientById(1L);
 
         assertEquals("Anna", found.getFirstName());
         assertEquals("Nowak", found.getLastName());
         assertEquals("11111111111", found.getPesel());
         assertEquals("Warszawa", found.getAddress());
+
+        verify(patientRepository).findById(1L);
     }
 
     @Test
     void shouldThrowIfPatientNotFound() {
-        PatientNotFoundException ex = assertThrows(PatientNotFoundException.class,
-                () -> patientService.getPatientById(999L));
+        when(patientRepository.findById(999L)).thenReturn(Optional.empty());
+
+        PatientNotFoundException ex = assertThrows(
+                PatientNotFoundException.class,
+                () -> patientService.getPatientById(999L)
+        );
 
         assertEquals("Patient with ID: 999 not found.", ex.getMessage());
+        verify(patientRepository).findById(999L);
     }
 
     @Test
-    void shouldGetPatients() {
-        patientService.addPatient(new Patient("A", "A", "11111111111", "X"));
-        patientService.addPatient(new Patient("B", "B", "22222222222", "Y"));
+    void shouldDeletePatientById() {
+        when(patientRepository.existsById(1L)).thenReturn(true);
 
-        List<Patient> patients = patientService.getPatients();
+        assertDoesNotThrow(() -> patientService.deletePatientById(1L));
 
-        assertTrue(patients.size() >= 2);
+        verify(patientRepository).existsById(1L);
+        verify(patientRepository).deleteById(1L);
     }
 
     @Test
-    void shouldDeletePatientSuccessfully() {
-        Patient p = new Patient("Jan", "Kowalski", "33333333333", "Kraków");
-        Patient saved = patientService.addPatient(p);
+    void deleteShouldThrowWhenPatientNotFound() {
+        when(patientRepository.existsById(999L)).thenReturn(false);
 
-        patientService.deletePatientById(saved.getId());
-
-        assertFalse(patientRepository.findById(saved.getId()).isPresent());
-    }
-
-    @Test
-    void shouldThrowWhenDeletingNonExistingPatient() {
-        PatientNotFoundException ex = assertThrows(PatientNotFoundException.class,
-                () -> patientService.deletePatientById(999L));
+        PatientNotFoundException ex = assertThrows(
+                PatientNotFoundException.class,
+                () -> patientService.deletePatientById(999L)
+        );
 
         assertEquals("Patient with ID: 999 not found.", ex.getMessage());
+        verify(patientRepository).existsById(999L);
+        verify(patientRepository, never()).deleteById(anyLong());
+    }
+
+    @Test
+    void shouldReturnAllPatientsAsDtos() {
+        Patient p1 = new Patient("Jan", "Kowalski", "12345678901", "Kraków");
+        Patient p2 = new Patient("Anna", "Nowak", "11111111111", "Warszawa");
+
+        when(patientRepository.findAll()).thenReturn(List.of(p1, p2));
+
+        List<PatientDto> result = patientService.getPatients();
+
+        assertEquals(2, result.size());
+        assertEquals("Jan", result.get(0).getFirstName());
+        assertEquals("Anna", result.get(1).getFirstName());
+
+        verify(patientRepository).findAll();
     }
 }
