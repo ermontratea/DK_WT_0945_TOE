@@ -22,5 +22,11 @@ public class OfficeDto {
 
     public void setId(Long id) {this.id = id;}
     public void setRoomNumber(int roomNumber) {this.roomNumber = roomNumber;}
+
+    @Override
+    public String toString() {
+        return "Office " + roomNumber;
+    }
+
 }
 

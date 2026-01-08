@@ -51,7 +51,7 @@ public class OfficeApiClient{
     }
 
     // ADD ONE OFFICE
-    public OfficeDto addOffice(Office office) throws InterruptedException, IOException {
+    public OfficeDto addOffice(OfficeDto office) throws InterruptedException, IOException {
         String json=mapper.writeValueAsString(office);
         HttpRequest request=HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL))

@@ -7,21 +7,22 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import pl.edu.agh.to.clinic.doctor.Doctor;
 import pl.edu.agh.to.clinic.doctor.DoctorApiClient;
 import javafx.application.Application;
 import pl.edu.agh.to.clinic.doctor.Specialization;
-import pl.edu.agh.to.clinic.duty.Duty;
 import pl.edu.agh.to.clinic.duty.DutyApiClient;
 import pl.edu.agh.to.clinic.duty.DutyDto;
 import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.OfficeNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 import pl.edu.agh.to.clinic.exceptions.RoomNumberDuplicationException;
-import pl.edu.agh.to.clinic.office.Office;
 import pl.edu.agh.to.clinic.office.OfficeApiClient;
-import pl.edu.agh.to.clinic.patient.Patient;
 import pl.edu.agh.to.clinic.patient.PatientApiClient;
+import pl.edu.agh.to.clinic.doctor.DoctorDto;
+import pl.edu.agh.to.clinic.doctor.DoctorListDto;
+import pl.edu.agh.to.clinic.office.OfficeDto;
+import pl.edu.agh.to.clinic.patient.PatientDto;
+import pl.edu.agh.to.clinic.patient.PatientListDto;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -36,9 +37,9 @@ public class ClinicApplicationFX extends Application{
     private final PatientApiClient patientApi=new PatientApiClient();
     private final OfficeApiClient officeApi=new OfficeApiClient();
     private final DutyApiClient dutyApi=new DutyApiClient();
-    private final ListView<Doctor> doctorListView=new ListView<>();
-    private final ListView<Office> officeListView=new ListView<>();
-    private final ListView<Patient> patientListView=new ListView<>();
+    private final ListView<DoctorListDto> doctorListView=new ListView<>();
+    private final ListView<OfficeDto> officeListView=new ListView<>();
+    private final ListView<PatientListDto> patientListView=new ListView<>();
 
     private VBox doctorsPanel;
     private VBox patientsPanel;
@@ -116,7 +117,7 @@ public class ClinicApplicationFX extends Application{
         // default view: doctors
         showPanel(doctorsPanel, patientsPanel, officesPanel);
 
-// ===== LIST CLICK HANDLERS =====
+//LIST CLICK HANDLERS
         doctorListView.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
             if (newV != null) showDoctorDetails(newV.getId());
         });
@@ -177,7 +178,7 @@ public class ClinicApplicationFX extends Application{
     // LOADING DOCTORS
     private void loadDoctors(){
         try {
-            List<Doctor> doctorList = doctorApi.getDoctors();
+            List<DoctorListDto> doctorList = doctorApi.getDoctors();
             doctorListView.getItems().setAll(doctorList);
         }catch (RuntimeException ex){
             showMessage("Error loading doctors list: " + ex.getMessage());
@@ -189,7 +190,7 @@ public class ClinicApplicationFX extends Application{
     //LOADING PATIENTS
     private void loadPatients() {
         try {
-            List<Patient> patients = patientApi.getPatients();
+            List<PatientListDto> patients = patientApi.getPatients();
             patientListView.getItems().setAll(patients);
         } catch (RuntimeException ex) {
             showMessage("Error loading patients list: " + ex.getMessage());
@@ -203,7 +204,7 @@ public class ClinicApplicationFX extends Application{
     // DOCTOR DETAILS
     private void showDoctorDetails(long id){
         try {
-            Doctor doctor = doctorApi.getDoctorById(id);
+            DoctorListDto doctor = doctorApi.getDoctorById(id);
             Dialog<ButtonType> dialog = new Dialog<>();
             dialog.setTitle("Doctor Details");
             dialog.setHeaderText(doctor.getFirstName() + " " + doctor.getLastName());
@@ -217,7 +218,7 @@ public class ClinicApplicationFX extends Application{
             List<DutyDto> duties =dutyApi.getDuties().stream().filter(d->d.getDoctorId().equals(doctor.getId())).toList();
             if (!duties.isEmpty()) {
                 for (DutyDto d : duties) {
-                    Office office = officeApi.getOfficeById(d.getOfficeId());
+                    OfficeDto office = officeApi.getOfficeById(d.getOfficeId());
                     int roomNumber = office.getRoomNumber();
                     sb.append(d.getDayOfWeek()).append(" | Office ").append(roomNumber).append(" | ").append(d.getStartTime())
                             .append(" - ").append(d.getEndTime()).append("\n");
@@ -276,7 +277,7 @@ public class ClinicApplicationFX extends Application{
     //PATIENT DETAILS
     private void showPatientDetails(long id) {
         try {
-            Patient patient = patientApi.getPatientById(id);
+            PatientListDto patient = patientApi.getPatientById(id);
 
             Dialog<ButtonType> dialog = new Dialog<>();
             dialog.setTitle("Patient Details");
@@ -311,7 +312,7 @@ public class ClinicApplicationFX extends Application{
     }
 
 
-    private void addDutyOrShowError(Doctor doctor, Office office, DayOfWeek day, LocalTime start, LocalTime end) {
+    private void addDutyOrShowError(DoctorListDto doctor, OfficeDto office, DayOfWeek day, LocalTime start, LocalTime end) {
         DutyDto duty = new DutyDto();
         duty.setDoctorId(doctor.getId());
         duty.setOfficeId(office.getId());
@@ -329,49 +330,51 @@ public class ClinicApplicationFX extends Application{
     // ADDING SAMPLE DATA
     private void addSampleData(){
         try{
-            List<Doctor> doctorsToAdd=List.of(
-                    new Doctor("Anna", "Nowak", "00000000000", Specialization.CARDIOLOGY, "A 1"),
-                    new Doctor("Jan", "Kowalski", "11111111111", Specialization.CARDIOLOGY, "B 1"),
-                    new Doctor("Marta", "Zielińska", "22222222222", Specialization.CARDIOLOGY, "C 1"),
-                    new Doctor("Tomasz", "Nowak", "33333333333", Specialization.DERMATOLOGY, "D 1"),
-                    new Doctor("Mateusz", "Wiśniewski", "44444444444", Specialization.DERMATOLOGY, "E 1"),
-                    new Doctor("Andrzej", "Dąb", "55555555555", Specialization.ORTHOPEDICS, "F 1"),
-                    new Doctor("Karolina", "Kamień", "66666666666", Specialization.PEDIATRICS, "G 1")
-                    );
-            for(Doctor doctor:doctorsToAdd){
+            List<DoctorDto> doctorsToAdd = List.of(
+                    makeDoctor("Anna", "Nowak", "00000000000", Specialization.CARDIOLOGY, "A 1"),
+                    makeDoctor("Jan", "Kowalski", "11111111111", Specialization.CARDIOLOGY, "B 1"),
+                    makeDoctor("Marta", "Zielińska", "22222222222", Specialization.CARDIOLOGY, "C 1"),
+                    makeDoctor("Tomasz", "Nowak", "33333333333", Specialization.DERMATOLOGY, "D 1"),
+                    makeDoctor("Mateusz", "Wiśniewski", "44444444444", Specialization.DERMATOLOGY, "E 1"),
+                    makeDoctor("Andrzej", "Dąb", "55555555555", Specialization.ORTHOPEDICS, "F 1"),
+                    makeDoctor("Karolina", "Kamień", "66666666666", Specialization.PEDIATRICS, "G 1")
+            );
+
+            for (DoctorDto doctor : doctorsToAdd) {
                 doctorApi.addDoctor(doctor);
             }
 
-            List<Office> officesToAdd = List.of(
-                    new Office(101),
-                    new Office(102),
-                    new Office(103)
+            List<OfficeDto> officesToAdd = List.of(
+                    makeOffice(101),
+                    makeOffice(102),
+                    makeOffice(103)
             );
-            for (Office o : officesToAdd) {
+            for (OfficeDto o : officesToAdd) {
                 try {
                     officeApi.addOffice(o);
                 } catch (RoomNumberDuplicationException ignored) {
                 }
             }
 
-            List<Patient> patientsToAdd = List.of(
-                    new Patient("Piotr", "Lis", "77777777777", "Kraków"),
-                    new Patient("Alicja", "Wójcik", "88888888888", "Warszawa"),
-                    new Patient("Kasia", "Krawczyk", "99999999999", "Gdańsk"),
-                    new Patient("Ola", "Mazur", "12121212121", "Wrocław"),
-                    new Patient("Bartek", "Zając", "13131313131", "Poznań")
+            List<PatientDto> patientsToAdd = List.of(
+                    makePatient("Piotr", "Lis", "77777777777", "Kraków"),
+                    makePatient("Alicja", "Wójcik", "88888888888", "Warszawa"),
+                    makePatient("Kasia", "Krawczyk", "99999999999", "Gdańsk"),
+                    makePatient("Ola", "Mazur", "12121212121", "Wrocław"),
+                    makePatient("Bartek", "Zając", "13131313131", "Poznań")
             );
-            for (Patient p : patientsToAdd) {
+
+            for (PatientDto p : patientsToAdd) {
                 try {
                     patientApi.addPatient(p);
                 } catch (PeselDuplicationException ignored) {
                 }
             }
-            List<Doctor> doctors = doctorApi.getDoctors().stream()
+            List<DoctorListDto> doctors = doctorApi.getDoctors().stream()
                     .sorted((a, b) -> Long.compare(a.getId(), b.getId()))
                     .toList();
 
-            List<Office> offices = officeApi.getOffices().stream()
+            List<OfficeDto> offices = officeApi.getOffices().stream()
                     .sorted((a, b) -> Long.compare(a.getId(), b.getId()))
                     .toList();
 
@@ -383,17 +386,17 @@ public class ClinicApplicationFX extends Application{
                 return;
             }
 
-            Doctor d1 = doctors.get(0);
-            Doctor d2 = doctors.get(1);
-            Doctor d3 = doctors.get(2);
-            Doctor d4 = doctors.get(3);
-            Doctor d5 = doctors.get(4);
-            Doctor d6 = doctors.get(5);
+            DoctorListDto  d1 = doctors.get(0);
+            DoctorListDto  d2 = doctors.get(1);
+            DoctorListDto  d3 = doctors.get(2);
+            DoctorListDto  d4 = doctors.get(3);
+            DoctorListDto  d5 = doctors.get(4);
+            DoctorListDto  d6 = doctors.get(5);
 //            Doctor d7 = doctors.get(6);
 
-            Office o1 = offices.get(0);
-            Office o2 = offices.get(1);
-            Office o3 = offices.get(2);
+            OfficeDto o1 = offices.get(0);
+            OfficeDto o2 = offices.get(1);
+            OfficeDto o3 = offices.get(2);
 
             addDutyOrShowError(d1, o1, DayOfWeek.MONDAY,    LocalTime.of(8, 0),  LocalTime.of(10, 0));
             addDutyOrShowError(d1, o2, DayOfWeek.MONDAY,    LocalTime.of(10, 0), LocalTime.of(12, 0));
@@ -425,6 +428,33 @@ public class ClinicApplicationFX extends Application{
 
         }
     }
+
+    private DoctorDto makeDoctor(String firstName, String lastName, String pesel, Specialization spec, String address) {
+        DoctorDto d = new DoctorDto();
+        d.setFirstName(firstName);
+        d.setLastName(lastName);
+        d.setPesel(pesel);
+        d.setSpecialization(spec);
+        d.setAddress(address);
+        return d;
+    }
+
+    private OfficeDto makeOffice(int roomNumber) {
+        OfficeDto o = new OfficeDto();
+        o.setRoomNumber(roomNumber);
+        return o;
+    }
+
+    private PatientDto makePatient(String firstName, String lastName, String pesel, String address) {
+        PatientDto p = new PatientDto();
+        p.setFirstName(firstName);
+        p.setLastName(lastName);
+        p.setPesel(pesel);
+        p.setAddress(address);
+        return p;
+    }
+
+
     //ADD CUSTOM DOCTOR
     private void addCustomDoctor(){
         Stage stage=new Stage();
@@ -465,14 +495,15 @@ public class ClinicApplicationFX extends Application{
 
         addButton.setOnAction(e->{
                 try {
-                    Doctor doctor = new Doctor(
-                            firstNameField.getText(),
-                            lastNameField.getText(),
-                            peselField.getText(),
-                            specializationBox.getValue(),
-                            addressField.getText()
-                    );
+                    DoctorDto doctor = new DoctorDto();
+                    doctor.setFirstName(firstNameField.getText());
+                    doctor.setLastName(lastNameField.getText());
+                    doctor.setPesel(peselField.getText());
+                    doctor.setSpecialization(specializationBox.getValue());
+                    doctor.setAddress(addressField.getText());
+
                     doctorApi.addDoctor(doctor);
+
                     loadDoctors();
                     showMessage("Doctor added successfully!");
                     stage.close();
@@ -511,8 +542,8 @@ public class ClinicApplicationFX extends Application{
     //DELETE DOCTORS
     private void deleteAllDoctors(){
         try{
-            List<Doctor> doctors=doctorApi.getDoctors();
-            for(Doctor doctor:doctors){
+            List<DoctorListDto> doctors=doctorApi.getDoctors();
+            for(DoctorListDto doctor:doctors){
                 doctorApi.deleteDoctorById(doctor.getId());
             }
             loadDoctors();
@@ -560,13 +591,14 @@ public class ClinicApplicationFX extends Application{
 
         addButton.setOnAction(e->{
                 try {
-                    Patient patient=new Patient(
-                            firstNameField.getText(),
-                            lastNameField.getText(),
-                            peselField.getText(),
-                            addressField.getText()
-                    );
+                    PatientDto patient = new PatientDto();
+                    patient.setFirstName(firstNameField.getText());
+                    patient.setLastName(lastNameField.getText());
+                    patient.setPesel(peselField.getText());
+                    patient.setAddress(addressField.getText());
+
                     patientApi.addPatient(patient);
+
                     loadPatients();
                     showMessage("Patient added successfully!");
                     stage.close();
@@ -589,7 +621,7 @@ public class ClinicApplicationFX extends Application{
     // LOADING OFFICES
     private void loadOffices(){
         try {
-            List<Office> officesList = officeApi.getOffices();
+            List<OfficeDto> officesList = officeApi.getOffices();
             officeListView.getItems().setAll(officesList);
         }catch (RuntimeException ex){
             showMessage("Error loading offices list: " + ex.getMessage());
@@ -601,7 +633,7 @@ public class ClinicApplicationFX extends Application{
     // OFFICE DETAILS
     private void showOfficeDetails(long id){
         try {
-            Office office=officeApi.getOfficeById(id);
+            OfficeDto office=officeApi.getOfficeById(id);
             Dialog<ButtonType> dialog = new Dialog<>();
             dialog.setTitle("Office Details");
             dialog.setHeaderText("Room: " + office.getRoomNumber());
@@ -612,9 +644,9 @@ public class ClinicApplicationFX extends Application{
             StringBuilder sb = new StringBuilder();
             List<DutyDto> duties =dutyApi.getDuties().stream().filter(d->d.getOfficeId().equals(office.getId())).toList();
             if (!duties.isEmpty()) {
-                List<Doctor> doctors=doctorApi.getDoctors();
+                List<DoctorListDto> doctors=doctorApi.getDoctors();
                 for (DutyDto d : duties) {
-                    Doctor doctor=doctors.stream().filter(doc->doc.getId().equals(d.getDoctorId())).findFirst().orElse(null);
+                    DoctorListDto doctor=doctors.stream().filter(doc->doc.getId().equals(d.getDoctorId())).findFirst().orElse(null);
                     String doctorName = doctor != null ? doctor.getFirstName() + " " + doctor.getLastName() : "Unknown";
                     sb.append(doctorName).append(" | ").append(d.getDayOfWeek()).append(" | ").append(d.getStartTime())
                             .append(" - ").append(d.getEndTime()).append("\n");
@@ -686,9 +718,8 @@ public class ClinicApplicationFX extends Application{
 
         addButton.setOnAction(e->{
                 try {
-                    Office office=new Office(
-                            parseInt(roomNumberField.getText())
-                    );
+                    OfficeDto office = new OfficeDto();
+                    office.setRoomNumber(parseInt(roomNumberField.getText()));
                     officeApi.addOffice(office);
                     loadOffices();
                     showMessage("Office added successfully!");
@@ -721,8 +752,8 @@ public class ClinicApplicationFX extends Application{
         dayBox.getItems().addAll(DayOfWeek.values());
         dayBox.setPromptText("Day of week");
 
-        ListView<Doctor> availableDoctorsView=new ListView<>();
-        ListView<Office> availableOfficesView=new ListView<>();
+        ListView<DoctorListDto> availableDoctorsView = new ListView<>();
+        ListView<OfficeDto> availableOfficesView = new ListView<>();
 
         Button checkBtn=new Button("Check availability");
         Button assignButton=new Button("Assign");
@@ -758,8 +789,8 @@ public class ClinicApplicationFX extends Application{
                         LocalTime endTime = LocalTime.parse(endHourField.getText(), formatter);
 
                         List<DutyDto> duties = dutyApi.getDuties();
-                        List<Doctor> doctors = doctorApi.getDoctors();
-                        List<Office> offices = officeApi.getOffices();
+                        List<DoctorListDto> doctors = doctorApi.getDoctors();
+                        List<OfficeDto> offices = officeApi.getOffices();
 
                         availableDoctorsView.getItems().setAll(doctors.stream()
                                 .filter(d -> isDoctorAvailable(d, dayBox.getValue(), startTime, endTime, duties)).toList());
@@ -771,8 +802,8 @@ public class ClinicApplicationFX extends Application{
                     }
                 });
         assignButton.setOnAction(e->{
-            Doctor doctor = availableDoctorsView.getSelectionModel().getSelectedItem();
-            Office office= availableOfficesView.getSelectionModel().getSelectedItem();
+            DoctorListDto doctor = availableDoctorsView.getSelectionModel().getSelectedItem();
+            OfficeDto office = availableOfficesView.getSelectionModel().getSelectedItem();
             if (doctor == null || office == null) {
                 showMessage("Please select doctor and office");
                 return;
@@ -805,7 +836,7 @@ public class ClinicApplicationFX extends Application{
 
     }
 
-    private boolean isDoctorAvailable(Doctor doctor,DayOfWeek day, LocalTime start,LocalTime end, List<DutyDto> duties){
+    private boolean isDoctorAvailable(DoctorListDto doctor, DayOfWeek day, LocalTime start, LocalTime end, List<DutyDto> duties) {
         return duties.stream()
                 .filter(d -> d.getDoctorId().equals(doctor.getId()))
                 .filter(d->d.getDayOfWeek().equals(day))
@@ -814,7 +845,7 @@ public class ClinicApplicationFX extends Application{
                                 && d.getEndTime().isAfter(start)
                 );
     }
-    private boolean isOfficeAvailable(Office office,DayOfWeek day, LocalTime start,LocalTime end, List<DutyDto> duties){
+    private boolean isOfficeAvailable(OfficeDto office, DayOfWeek day, LocalTime start, LocalTime end, List<DutyDto> duties) {
         return duties.stream()
                 .filter(d->d.getOfficeId().equals(office.getId()))
                 .filter(d->d.getDayOfWeek().equals(day))

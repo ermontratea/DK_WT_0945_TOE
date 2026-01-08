@@ -24,4 +24,10 @@ public class PatientListDto {
     public void setFirstName(String firstName) { this.firstName = firstName; }
     public void setLastName(String lastName) { this.lastName = lastName; }
     public void setAddress(String address) { this.address = address; }
+
+    @Override
+    public String toString() {
+        return firstName + " " + lastName;
+    }
+
 }
