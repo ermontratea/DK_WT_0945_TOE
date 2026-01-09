@@ -2,6 +2,7 @@ package pl.edu.agh.to.clinic.doctor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -40,19 +41,17 @@ class DoctorControllerTest {
 
     @Test
     void shouldGetAllDoctors() throws Exception {
-        DoctorDto d1 = new DoctorDto();
+        DoctorListDto d1 = new DoctorListDto();
         d1.setId(1L);
         d1.setFirstName("Jan");
         d1.setLastName("Kowalski");
-        d1.setPesel("12345678901");
         d1.setAddress("Kraków");
         d1.setSpecialization(Specialization.CARDIOLOGY);
 
-        DoctorDto d2 = new DoctorDto();
+        DoctorListDto d2 = new DoctorListDto();
         d2.setId(2L);
         d2.setFirstName("Anna");
         d2.setLastName("Nowak");
-        d2.setPesel("11111111111");
         d2.setAddress("Warszawa");
         d2.setSpecialization(Specialization.DERMATOLOGY);
 
@@ -67,11 +66,10 @@ class DoctorControllerTest {
 
     @Test
     void shouldGetDoctorById() throws Exception {
-        DoctorDto dto = new DoctorDto();
+        DoctorListDto dto = new DoctorListDto();
         dto.setId(5L);
         dto.setFirstName("Jan");
         dto.setLastName("Kowalski");
-        dto.setPesel("12345678901");
         dto.setAddress("Kraków");
         dto.setSpecialization(Specialization.CARDIOLOGY);
 
@@ -82,7 +80,7 @@ class DoctorControllerTest {
                 .andExpect(jsonPath("$.id", is(5)))
                 .andExpect(jsonPath("$.firstName", is("Jan")))
                 .andExpect(jsonPath("$.lastName", is("Kowalski")))
-                .andExpect(jsonPath("$.pesel", is("12345678901")))
+//                .andExpect(jsonPath("$.pesel", is("12345678901")))
                 .andExpect(jsonPath("$.address", is("Kraków")))
                 .andExpect(jsonPath("$.specialization", is("CARDIOLOGY")));
     }

@@ -72,11 +72,11 @@ class PatientServiceTest {
 
         when(patientRepository.findById(1L)).thenReturn(Optional.of(patient));
 
-        PatientDto found = patientService.getPatientById(1L);
+        PatientListDto found = patientService.getPatientById(1L);
 
         assertEquals("Anna", found.getFirstName());
         assertEquals("Nowak", found.getLastName());
-        assertEquals("11111111111", found.getPesel());
+//        assertEquals("11111111111", found.getPesel());
         assertEquals("Warszawa", found.getAddress());
 
         verify(patientRepository).findById(1L);
@@ -126,7 +126,7 @@ class PatientServiceTest {
 
         when(patientRepository.findAll()).thenReturn(List.of(p1, p2));
 
-        List<PatientDto> result = patientService.getPatients();
+        List<PatientListDto> result = patientService.getPatients();
 
         assertEquals(2, result.size());
         assertEquals("Jan", result.get(0).getFirstName());

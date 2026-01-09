@@ -2,6 +2,7 @@ package pl.edu.agh.to.clinic.patient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -40,18 +41,18 @@ class PatientControllerTest {
 
     @Test
     void shouldGetAllPatients() throws Exception {
-        PatientDto p1 = new PatientDto();
+        PatientListDto p1 = new PatientListDto();
         p1.setId(1L);
         p1.setFirstName("Jan");
         p1.setLastName("Kowalski");
-        p1.setPesel("12345678901");
+//        p1.setPesel("12345678901");
         p1.setAddress("Kraków");
 
-        PatientDto p2 = new PatientDto();
+        PatientListDto p2 = new PatientListDto();
         p2.setId(2L);
         p2.setFirstName("Anna");
         p2.setLastName("Nowak");
-        p2.setPesel("11111111111");
+//        p2.setPesel("11111111111");
         p2.setAddress("Warszawa");
 
         when(patientService.getPatients()).thenReturn(List.of(p1, p2));
@@ -65,11 +66,11 @@ class PatientControllerTest {
 
     @Test
     void shouldGetPatientById() throws Exception {
-        PatientDto dto = new PatientDto();
+        PatientListDto dto = new PatientListDto();
         dto.setId(5L);
         dto.setFirstName("Anna");
         dto.setLastName("Nowak");
-        dto.setPesel("33333333333");
+//        dto.setPesel("33333333333");
         dto.setAddress("Warszawa");
 
         when(patientService.getPatientById(5L)).thenReturn(dto);
@@ -79,7 +80,7 @@ class PatientControllerTest {
                 .andExpect(jsonPath("$.id", is(5)))
                 .andExpect(jsonPath("$.firstName", is("Anna")))
                 .andExpect(jsonPath("$.lastName", is("Nowak")))
-                .andExpect(jsonPath("$.pesel", is("33333333333")))
+//                .andExpect(jsonPath("$.pesel", is("33333333333")))
                 .andExpect(jsonPath("$.address", is("Warszawa")));
     }
 

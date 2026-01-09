@@ -5,7 +5,10 @@ import pl.edu.agh.to.clinic.doctor.Doctor;
 import pl.edu.agh.to.clinic.doctor.Specialization;
 import pl.edu.agh.to.clinic.office.Office;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -16,10 +19,11 @@ class DutyTest {
         Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901",
                 Specialization.CARDIOLOGY, "Kraków");
         Office office = new Office(10);
-        LocalDateTime start = LocalDateTime.of(2025,1,1,8,0);
-        LocalDateTime end   = LocalDateTime.of(2025,1,1,12,0);
+        LocalTime start = LocalTime.of(8,0);
+        LocalTime end   = LocalTime.of(12,0);
+        DayOfWeek day = LocalDate.now().getDayOfWeek();
 
-        Duty duty = new Duty(doctor, office, start, end);
+        Duty duty = new Duty(doctor, office, day, start, end);
 
         assertEquals(doctor, duty.getDoctor());
         assertEquals(office, duty.getOffice());

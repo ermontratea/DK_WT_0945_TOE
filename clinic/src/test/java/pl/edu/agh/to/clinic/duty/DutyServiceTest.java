@@ -14,7 +14,10 @@ import pl.edu.agh.to.clinic.office.Office;
 import pl.edu.agh.to.clinic.office.OfficeRepository;
 
 import java.lang.reflect.Field;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -55,14 +58,16 @@ class DutyServiceTest {
 
     @Test
     void shouldAddDutySuccessfully() throws Exception {
-        LocalDateTime start = LocalDateTime.of(2025, 1, 1, 8, 0);
-        LocalDateTime end   = LocalDateTime.of(2025, 1, 1, 12, 0);
+        LocalTime start = LocalTime.of(4,0);
+        LocalTime end   = LocalTime.of(6,0);
+        DayOfWeek dayOfWeek = DayOfWeek.MONDAY;
 
         DutyDto dto = new DutyDto();
         dto.setDoctorId(1L);
         dto.setOfficeId(2L);
         dto.setStartTime(start);
         dto.setEndTime(end);
+        dto.setDayOfWeek(dayOfWeek);
 
         Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901", null, "Kraków");
         Office office = new Office(101);
@@ -72,14 +77,14 @@ class DutyServiceTest {
 
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
         when(officeRepository.findById(2L)).thenReturn(Optional.of(office));
-        when(dutyRepository.existsByDoctorAndStartTimeBeforeAndEndTimeAfter(
-                any(), any(), any())
+        when(dutyRepository.existsByDoctorAndDayOfWeekAndStartTimeBeforeAndEndTimeAfter(
+                any(), any(), any(), any())
         ).thenReturn(false);
-        when(dutyRepository.existsByOfficeAndStartTimeBeforeAndEndTimeAfter(
-                any(), any(), any())
+        when(dutyRepository.existsByOfficeAndDayOfWeekAndStartTimeBeforeAndEndTimeAfter(
+                any(), any(), any(),any())
         ).thenReturn(false);
 
-        Duty saved = new Duty(doctor, office, start, end);
+        Duty saved = new Duty(doctor, office, dayOfWeek, start, end);
         setId(saved, 10L);
 
         when(dutyRepository.save(any(Duty.class))).thenReturn(saved);
@@ -94,20 +99,26 @@ class DutyServiceTest {
 
         verify(doctorRepository).findById(1L);
         verify(officeRepository).findById(2L);
-        verify(dutyRepository).existsByDoctorAndStartTimeBeforeAndEndTimeAfter(
-                doctor, end, start);
-        verify(dutyRepository).existsByOfficeAndStartTimeBeforeAndEndTimeAfter(
-                office, end, start);
+        verify(dutyRepository).existsByDoctorAndDayOfWeekAndStartTimeBeforeAndEndTimeAfter(
+                doctor, dayOfWeek, end, start);
+        verify(dutyRepository).existsByOfficeAndDayOfWeekAndStartTimeBeforeAndEndTimeAfter(
+                office, dayOfWeek, end, start);
         verify(dutyRepository).save(any(Duty.class));
     }
 
     @Test
     void shouldThrowWhenDoctorNotFound() {
+        DayOfWeek day = LocalDate.now().getDayOfWeek();
+
+        LocalTime start = LocalTime.now();
+
+        LocalTime end = start.plusHours(4);
         DutyDto dto = new DutyDto();
         dto.setDoctorId(1L);
         dto.setOfficeId(2L);
-        dto.setStartTime(LocalDateTime.now());
-        dto.setEndTime(LocalDateTime.now().plusHours(4));
+        dto.setStartTime(start);
+        dto.setEndTime(end);
+        dto.setDayOfWeek(day);
 
         when(doctorRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -127,8 +138,8 @@ class DutyServiceTest {
         DutyDto dto = new DutyDto();
         dto.setDoctorId(1L);
         dto.setOfficeId(2L);
-        dto.setStartTime(LocalDateTime.now());
-        dto.setEndTime(LocalDateTime.now().plusHours(4));
+        dto.setStartTime(LocalTime.now());
+        dto.setEndTime(LocalTime.now().plusHours(4));
 
         Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901", null, "Kraków");
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
@@ -147,22 +158,24 @@ class DutyServiceTest {
 
     @Test
     void shouldThrowWhenDoctorBusy() {
-        LocalDateTime start = LocalDateTime.now();
-        LocalDateTime end = start.plusHours(4);
+        LocalTime start = LocalTime.now();
+        LocalTime end = start.plusHours(4);
+        DayOfWeek day = LocalDate.now().getDayOfWeek();
 
         DutyDto dto = new DutyDto();
         dto.setDoctorId(1L);
         dto.setOfficeId(2L);
         dto.setStartTime(start);
         dto.setEndTime(end);
+        dto.setDayOfWeek(day);
 
         Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901", null, "Kraków");
         Office office = new Office(101);
 
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
         when(officeRepository.findById(2L)).thenReturn(Optional.of(office));
-        when(dutyRepository.existsByDoctorAndStartTimeBeforeAndEndTimeAfter(
-                doctor, end, start)
+        when(dutyRepository.existsByDoctorAndDayOfWeekAndStartTimeBeforeAndEndTimeAfter(
+                doctor, day, end, start)
         ).thenReturn(true);
 
         IllegalStateException ex = assertThrows(
@@ -176,25 +189,27 @@ class DutyServiceTest {
 
     @Test
     void shouldThrowWhenOfficeBusy() {
-        LocalDateTime start = LocalDateTime.now();
-        LocalDateTime end = start.plusHours(4);
+        LocalTime start = LocalTime.now();
+        LocalTime end = start.plusHours(4);
+        DayOfWeek day = LocalDate.now().getDayOfWeek();
 
         DutyDto dto = new DutyDto();
         dto.setDoctorId(1L);
         dto.setOfficeId(2L);
         dto.setStartTime(start);
         dto.setEndTime(end);
+        dto.setDayOfWeek(day);
 
         Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901", null, "Kraków");
         Office office = new Office(101);
 
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
         when(officeRepository.findById(2L)).thenReturn(Optional.of(office));
-        when(dutyRepository.existsByDoctorAndStartTimeBeforeAndEndTimeAfter(
-                doctor, end, start)
+        when(dutyRepository.existsByDoctorAndDayOfWeekAndStartTimeBeforeAndEndTimeAfter(
+                doctor, day, end, start)
         ).thenReturn(false);
-        when(dutyRepository.existsByOfficeAndStartTimeBeforeAndEndTimeAfter(
-                office, end, start)
+        when(dutyRepository.existsByOfficeAndDayOfWeekAndStartTimeBeforeAndEndTimeAfter(
+                office, day, end, start)
         ).thenReturn(true);
 
         IllegalStateException ex = assertThrows(
@@ -210,10 +225,11 @@ class DutyServiceTest {
     void shouldReturnAllDuties() {
         Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901", null, "Kraków");
         Office office = new Office(101);
-        LocalDateTime start = LocalDateTime.of(2025, 1, 1, 8, 0);
-        LocalDateTime end   = LocalDateTime.of(2025, 1, 1, 12, 0);
+        LocalTime start = LocalTime.of(8, 0);
+        LocalTime end   = LocalTime.of( 12, 0);
+        DayOfWeek day = DayOfWeek.MONDAY;
 
-        Duty duty = new Duty(doctor, office, start, end);
+        Duty duty = new Duty(doctor, office, day, start, end);
 
         when(dutyRepository.findAll()).thenReturn(List.of(duty));
 
@@ -229,9 +245,10 @@ class DutyServiceTest {
     void shouldGetDutyById() {
         Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901", null, "Kraków");
         Office office = new Office(101);
-        LocalDateTime start = LocalDateTime.of(2025, 1, 1, 8, 0);
-        LocalDateTime end   = LocalDateTime.of(2025, 1, 1, 12, 0);
-        Duty duty = new Duty(doctor, office, start, end);
+        LocalTime start = LocalTime.of(8, 0);
+        LocalTime end   = LocalTime.of(12, 0);
+        DayOfWeek day = DayOfWeek.MONDAY;
+        Duty duty = new Duty(doctor, office, day, start, end);
 
         when(dutyRepository.findById(1L)).thenReturn(Optional.of(duty));
 

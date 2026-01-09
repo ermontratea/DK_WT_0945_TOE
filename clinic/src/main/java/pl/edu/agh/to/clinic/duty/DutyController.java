@@ -32,7 +32,7 @@ public class DutyController {
                     description = "List of duties returned"
             )
     })
-    public List<DutyDto> getAllDuties() {
+    public List<DutyDto> getDuties() {
         return dutyService.getDuties();
     }
 
@@ -99,7 +99,7 @@ public class DutyController {
                     description = "Duty not found"
             )
     })
-    public void deleteDuty(@PathVariable Long id) {
+    public void deleteDutyById(@PathVariable Long id) {
         dutyService.deleteDutyById(id);
     }
 }

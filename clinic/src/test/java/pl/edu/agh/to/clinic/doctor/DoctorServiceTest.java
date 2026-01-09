@@ -91,7 +91,7 @@ class DoctorServiceTest {
 
         when(doctorRepository.findAll()).thenReturn(List.of(d1, d2));
 
-        List<DoctorDto> result = doctorService.getDoctors();
+        List<DoctorListDto> result = doctorService.getDoctors();
 
         assertEquals(2, result.size());
         assertEquals("Anna", result.get(0).getFirstName());
@@ -107,11 +107,10 @@ class DoctorServiceTest {
 
         when(doctorRepository.findById(5L)).thenReturn(Optional.of(doctor));
 
-        DoctorDto result = doctorService.getDoctorById(5L);
+        DoctorListDto result = doctorService.getDoctorById(5L);
 
         assertEquals("Anna", result.getFirstName());
         assertEquals("Nowak", result.getLastName());
-        assertEquals("33333333333", result.getPesel());
         assertEquals("Warszawa", result.getAddress());
         assertEquals(Specialization.DERMATOLOGY, result.getSpecialization());
         verify(doctorRepository).findById(5L);
