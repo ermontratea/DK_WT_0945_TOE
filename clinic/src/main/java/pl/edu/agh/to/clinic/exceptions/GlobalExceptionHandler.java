@@ -12,15 +12,15 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(PeselDuplicationException.class)
-    public ResponseEntity<Map<String, String>> handlePeselDuplication(PeselDuplicationException e) {
+    @ExceptionHandler({PeselDuplicationException.class, RoomNumberDuplicationException.class, IllegalStateException.class})
+    public ResponseEntity<Map<String, String>> handleConflict(Exception e) {
         Map<String, String> body = new HashMap<>();
         body.put("error", e.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
-    @ExceptionHandler(DoctorNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleDoctorNotFound(DoctorNotFoundException e) {
+    @ExceptionHandler({DoctorNotFoundException.class, OfficeNotFoundException.class, PatientNotFoundException.class, DutyNotFoundException.class})
+    public ResponseEntity<Map<String, String>> handleNotFound(Exception e) {
         Map<String, String> body = new HashMap<>();
         body.put("error", e.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);

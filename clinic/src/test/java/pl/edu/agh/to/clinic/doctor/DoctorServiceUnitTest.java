@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class DoctorServiceTest {
+class DoctorServiceUnitTest {
 
     @Mock
     private DoctorRepository doctorRepository;
@@ -25,26 +25,22 @@ class DoctorServiceTest {
     @InjectMocks
     private DoctorService doctorService;
 
-    private void setId(Doctor doctor, long id) throws Exception {
-        Field idField = doctor.getClass().getSuperclass().getDeclaredField("id");
-        idField.setAccessible(true);
-        idField.set(doctor, id);
-    }
-
     @Test
     void shouldAddDoctorSuccessfully() throws Exception {
         DoctorDto dto = new DoctorDto();
         dto.setFirstName("Jan");
         dto.setLastName("Kowalski");
         dto.setPesel("12345678901");
-        dto.setAddress("Kraków");
         dto.setSpecialization(Specialization.CARDIOLOGY);
+        dto.setAddress("Kraków");
 
         when(doctorRepository.existsByPesel("12345678901")).thenReturn(false);
 
         Doctor saved = new Doctor("Jan", "Kowalski", "12345678901",
                 Specialization.CARDIOLOGY, "Kraków");
-        setId(saved, 1L);
+        Field idField = saved.getClass().getSuperclass().getDeclaredField("id");
+        idField.setAccessible(true);
+        idField.set(saved, 1L);
 
         when(doctorRepository.save(any(Doctor.class))).thenReturn(saved);
 
@@ -54,8 +50,8 @@ class DoctorServiceTest {
         assertEquals("Jan", result.getFirstName());
         assertEquals("Kowalski", result.getLastName());
         assertEquals("12345678901", result.getPesel());
-        assertEquals("Kraków", result.getAddress());
         assertEquals(Specialization.CARDIOLOGY, result.getSpecialization());
+        assertEquals("Kraków", result.getAddress());
 
         verify(doctorRepository).existsByPesel("12345678901");
         verify(doctorRepository).save(any(Doctor.class));
@@ -67,8 +63,8 @@ class DoctorServiceTest {
         dto.setFirstName("Jan");
         dto.setLastName("Kowalski");
         dto.setPesel("12345678901");
-        dto.setAddress("Kraków");
         dto.setSpecialization(Specialization.CARDIOLOGY);
+        dto.setAddress("Kraków");
 
         when(doctorRepository.existsByPesel("12345678901")).thenReturn(true);
 
@@ -96,24 +92,26 @@ class DoctorServiceTest {
         assertEquals(2, result.size());
         assertEquals("Anna", result.get(0).getFirstName());
         assertEquals("Jan", result.get(1).getFirstName());
+
         verify(doctorRepository).findAll();
     }
 
     @Test
-    void shouldGetDoctorById() throws Exception {
+    void shouldGetDoctorById() {
         Doctor doctor = new Doctor("Anna", "Nowak", "33333333333",
                 Specialization.DERMATOLOGY, "Warszawa");
-        setId(doctor, 5L);
 
-        when(doctorRepository.findById(5L)).thenReturn(Optional.of(doctor));
+        when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
 
-        DoctorListDto result = doctorService.getDoctorById(5L);
+        DoctorListDto result = doctorService.getDoctorById(1L);
 
         assertEquals("Anna", result.getFirstName());
         assertEquals("Nowak", result.getLastName());
+//        assertEquals("33333333333", result.getPesel());
         assertEquals("Warszawa", result.getAddress());
         assertEquals(Specialization.DERMATOLOGY, result.getSpecialization());
-        verify(doctorRepository).findById(5L);
+
+        verify(doctorRepository).findById(1L);
     }
 
     @Test
@@ -130,7 +128,7 @@ class DoctorServiceTest {
     }
 
     @Test
-    void shouldDeleteDoctorWhenNoDuties() {
+    void shouldDeleteDoctorByIdWhenNoDuties() {
         Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901",
                 Specialization.CARDIOLOGY, "Kraków");
         doctor.setDuties(List.of());
@@ -145,15 +143,15 @@ class DoctorServiceTest {
 
     @Test
     void deleteDoctorShouldThrowWhenNotFound() {
-        when(doctorRepository.findById(1L)).thenReturn(Optional.empty());
+        when(doctorRepository.findById(999L)).thenReturn(Optional.empty());
 
         DoctorNotFoundException ex = assertThrows(
                 DoctorNotFoundException.class,
-                () -> doctorService.deleteDoctorById(1L)
+                () -> doctorService.deleteDoctorById(999L)
         );
 
-        assertEquals("Doctor with ID: 1 not found.", ex.getMessage());
-        verify(doctorRepository).findById(1L);
+        assertEquals("Doctor with ID: 999 not found.", ex.getMessage());
+        verify(doctorRepository).findById(999L);
         verify(doctorRepository, never()).deleteById(anyLong());
     }
 

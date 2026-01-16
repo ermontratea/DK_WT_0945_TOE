@@ -1,4 +1,4 @@
-package pl.edu.agh.to.clinic.doctor;
+package pl.edu.agh.to.clinic.patient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -9,8 +9,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.GlobalExceptionHandler;
+import pl.edu.agh.to.clinic.exceptions.PatientNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
 import java.util.List;
@@ -19,45 +19,45 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers = DoctorController.class)
+@WebMvcTest(controllers = PatientController.class)
 @Import(GlobalExceptionHandler.class)
-class DoctorControllerTest {
+class PatientControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
-    private DoctorService doctorService;
+    private PatientService patientService;
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @Test
-    void shouldGetAllDoctors() throws Exception {
-        DoctorListDto d1 = new DoctorListDto();
-        d1.setId(1L);
-        d1.setFirstName("Jan");
-        d1.setLastName("Kowalski");
-        d1.setAddress("Kraków");
-        d1.setSpecialization(Specialization.CARDIOLOGY);
+    void shouldGetAllPatients() throws Exception {
+        PatientListDto p1 = new PatientListDto();
+        p1.setId(1L);
+        p1.setFirstName("Jan");
+        p1.setLastName("Kowalski");
+//        p1.setPesel("12345678901");
+        p1.setAddress("Kraków");
 
-        DoctorListDto d2 = new DoctorListDto();
-        d2.setId(2L);
-        d2.setFirstName("Anna");
-        d2.setLastName("Nowak");
-        d2.setAddress("Warszawa");
-        d2.setSpecialization(Specialization.DERMATOLOGY);
+        PatientListDto p2 = new PatientListDto();
+        p2.setId(2L);
+        p2.setFirstName("Anna");
+        p2.setLastName("Nowak");
+//        p2.setPesel("11111111111");
+        p2.setAddress("Warszawa");
 
-        when(doctorService.getDoctors()).thenReturn(List.of(d1, d2));
+        when(patientService.getPatients()).thenReturn(List.of(p1, p2));
 
-        mockMvc.perform(get("/doctors"))
+        mockMvc.perform(get("/patients"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].firstName", is("Jan")))
@@ -65,57 +65,54 @@ class DoctorControllerTest {
     }
 
     @Test
-    void shouldGetDoctorById() throws Exception {
-        DoctorListDto dto = new DoctorListDto();
+    void shouldGetPatientById() throws Exception {
+        PatientListDto dto = new PatientListDto();
         dto.setId(5L);
-        dto.setFirstName("Jan");
-        dto.setLastName("Kowalski");
-        dto.setAddress("Kraków");
-        dto.setSpecialization(Specialization.CARDIOLOGY);
+        dto.setFirstName("Anna");
+        dto.setLastName("Nowak");
+//        dto.setPesel("33333333333");
+        dto.setAddress("Warszawa");
 
-        when(doctorService.getDoctorById(5L)).thenReturn(dto);
+        when(patientService.getPatientById(5L)).thenReturn(dto);
 
-        mockMvc.perform(get("/doctors/5"))
+        mockMvc.perform(get("/patients/5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(5)))
-                .andExpect(jsonPath("$.firstName", is("Jan")))
-                .andExpect(jsonPath("$.lastName", is("Kowalski")))
-//                .andExpect(jsonPath("$.pesel", is("12345678901")))
-                .andExpect(jsonPath("$.address", is("Kraków")))
-                .andExpect(jsonPath("$.specialization", is("CARDIOLOGY")));
+                .andExpect(jsonPath("$.firstName", is("Anna")))
+                .andExpect(jsonPath("$.lastName", is("Nowak")))
+//                .andExpect(jsonPath("$.pesel", is("33333333333")))
+                .andExpect(jsonPath("$.address", is("Warszawa")));
     }
 
     @Test
-    void shouldReturnNotFoundWhenDoctorMissing() throws Exception {
-        when(doctorService.getDoctorById(999L))
-                .thenThrow(new DoctorNotFoundException(999L));
+    void shouldReturnNotFoundWhenPatientMissing() throws Exception {
+        when(patientService.getPatientById(999L))
+                .thenThrow(new PatientNotFoundException(999L));
 
-        mockMvc.perform(get("/doctors/999"))
+        mockMvc.perform(get("/patients/999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error")
-                        .value("Doctor with ID: 999 not found."));
+                        .value("Patient with ID: 999 not found."));
     }
 
     @Test
-    void shouldCreateDoctor() throws Exception {
-        DoctorDto request = new DoctorDto();
+    void shouldCreatePatient() throws Exception {
+        PatientDto request = new PatientDto();
         request.setFirstName("Jan");
         request.setLastName("Kowalski");
         request.setPesel("12345678901");
         request.setAddress("Kraków");
-        request.setSpecialization(Specialization.CARDIOLOGY);
 
-        DoctorDto response = new DoctorDto();
+        PatientDto response = new PatientDto();
         response.setId(10L);
         response.setFirstName("Jan");
         response.setLastName("Kowalski");
         response.setPesel("12345678901");
         response.setAddress("Kraków");
-        response.setSpecialization(Specialization.CARDIOLOGY);
 
-        when(doctorService.addDoctor(any(DoctorDto.class))).thenReturn(response);
+        when(patientService.addPatient(any(PatientDto.class))).thenReturn(response);
 
-        mockMvc.perform(post("/doctors")
+        mockMvc.perform(post("/patients")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -126,17 +123,16 @@ class DoctorControllerTest {
 
     @Test
     void shouldReturnConflictWhenPeselDuplicated() throws Exception {
-        DoctorDto request = new DoctorDto();
+        PatientDto request = new PatientDto();
         request.setFirstName("Jan");
         request.setLastName("Kowalski");
         request.setPesel("12345678901");
         request.setAddress("Kraków");
-        request.setSpecialization(Specialization.CARDIOLOGY);
 
-        when(doctorService.addDoctor(any(DoctorDto.class)))
+        when(patientService.addPatient(any(PatientDto.class)))
                 .thenThrow(new PeselDuplicationException("12345678901"));
 
-        mockMvc.perform(post("/doctors")
+        mockMvc.perform(post("/patients")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
@@ -145,36 +141,40 @@ class DoctorControllerTest {
     }
 
     @Test
-    void shouldReturnValidationErrorsForInvalidDoctor() throws Exception {
+    void shouldReturnValidationErrorsForInvalidPatient() throws Exception {
         String json = """
                 {
                   "firstName": "",
                   "lastName": "",
                   "pesel": "123",
-                  "address": "",
-                  "specialization": null
+                  "address": ""
                 }
                 """;
 
-        mockMvc.perform(post("/doctors")
+        mockMvc.perform(post("/patients")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("firstName: First name cannot be blank")))
                 .andExpect(content().string(containsString("lastName: Last name cannot be blank")))
                 .andExpect(content().string(containsString("pesel: PESEL must have exactly 11 digits")))
-                .andExpect(content().string(containsString("address: Address cannot be blank")))
-                .andExpect(content().string(containsString("specialization: Specialization cannot be null")));
+                .andExpect(content().string(containsString("address: Address cannot be blank")));
     }
 
     @Test
-    void shouldReturnConflictWhenDeletingDoctorWithDuties() throws Exception {
-        doThrow(new IllegalStateException("You can't delete a doctor with assigned duties "))
-                .when(doctorService).deleteDoctorById(1L);
+    void shouldDeletePatient() throws Exception {
+        mockMvc.perform(delete("/patients/1"))
+                .andExpect(status().isOk());
+    }
 
-        mockMvc.perform(delete("/doctors/1"))
-                .andExpect(status().isConflict())
+    @Test
+    void shouldReturnNotFoundWhenDeletingNonExistingPatient() throws Exception {
+        doThrow(new PatientNotFoundException(999L))
+                .when(patientService).deletePatientById(999L);
+
+        mockMvc.perform(delete("/patients/999"))
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error")
-                        .value("You can't delete a doctor with assigned duties "));
+                        .value("Patient with ID: 999 not found."));
     }
 }

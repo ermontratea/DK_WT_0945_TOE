@@ -1,9 +1,9 @@
-package pl.edu.agh.to.clinic.doctor;
+package pl.edu.agh.to.clinic.patient;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
+import pl.edu.agh.to.clinic.exceptions.PatientNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
 import java.io.IOException;
@@ -13,19 +13,13 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
 
-public class DoctorApiClient {
-    public static final String BASE_URL = "http://localhost:8080/doctors";
+public class PatientApiClient {
+    public static final String BASE_URL = "http://localhost:8080/patients";
     private final HttpClient client=HttpClient.newHttpClient();
-    ObjectMapper mapper;
+    ObjectMapper mapper = new ObjectMapper();
 
-    public DoctorApiClient() {
-        this.mapper = new ObjectMapper();
-        this.mapper.registerModule(new JavaTimeModule());
-        //this.mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    }
-
-    // GET DOCTOR LIST
-    public List<DoctorListDto> getDoctors() throws InterruptedException, IOException {
+    // GET PATIENT LIST
+    public List<PatientListDto> getPatients() throws InterruptedException, IOException {
 
         HttpRequest request= HttpRequest.newBuilder(URI.create(BASE_URL)).GET().build();
 
@@ -34,25 +28,25 @@ public class DoctorApiClient {
             throw new RuntimeException("Server returned error: " + response.statusCode());
         }
 
-        return mapper.readValue(response.body(), new TypeReference<List<DoctorListDto>>(){});
+        return mapper.readValue(response.body(), new TypeReference<List<PatientListDto>>(){});
     }
 
-    // GET ONE DOCTOR BY ID
-    public DoctorListDto getDoctorById(long id) throws InterruptedException, IOException {
+    // GET ONE PATIENT BY ID
+    public PatientListDto getPatientById(long id) throws InterruptedException, IOException {
 
         HttpRequest request= HttpRequest.newBuilder(URI.create(BASE_URL + "/" + id)).GET().build();
 
         HttpResponse<String> response=client.send(request,HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 404) {
-            throw new DoctorNotFoundException(id);
+            throw new PatientNotFoundException(id);
         }
 
-        return mapper.readValue(response.body(),DoctorListDto.class);
+        return mapper.readValue(response.body(),PatientListDto.class);
     }
 
-    // ADD ONE DOCTOR
-    public DoctorDto addDoctor(DoctorDto doctor) throws InterruptedException, IOException {
-        String json=mapper.writeValueAsString(doctor);
+    // ADD ONE PATIENT
+    public PatientDto  addPatient(PatientDto  patient) throws InterruptedException, IOException {
+        String json=mapper.writeValueAsString(patient);
         HttpRequest request=HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL))
                 .header("Content-Type","application/json")
@@ -60,21 +54,19 @@ public class DoctorApiClient {
                 .build();
         HttpResponse<String> response=client.send(request,HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 409) {
-            throw new PeselDuplicationException(doctor.getPesel());
+            throw new PeselDuplicationException(patient.getPesel());
         }else if (response.statusCode() == 400) {
             throw new RuntimeException(response.body());
         }
-        return mapper.readValue(response.body(),DoctorDto.class);
+        return mapper.readValue(response.body(),PatientDto.class);
     }
 
-    // DELETE ONE DOCTOR BY ID
-    public void deleteDoctorById(long id) throws InterruptedException, IOException {
+    // DELETE ONE PATIENT BY ID
+    public void deletePatientById(long id) throws InterruptedException, IOException {
         HttpRequest request= HttpRequest.newBuilder(URI.create(BASE_URL + "/" + id)).DELETE().build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 404) {
-            throw new DoctorNotFoundException(id);
-        }else if(response.statusCode()==409){
-            throw new RuntimeException(response.body());
+            throw new PatientNotFoundException(id);
         }
     }
 }
