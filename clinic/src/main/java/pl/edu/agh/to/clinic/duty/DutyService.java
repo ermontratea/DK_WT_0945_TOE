@@ -1,6 +1,7 @@
 package pl.edu.agh.to.clinic.duty;
 
 import org.springframework.stereotype.Service;
+import pl.edu.agh.to.clinic.appointment.AppointmentRepository;
 import pl.edu.agh.to.clinic.exceptions.DutyNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.OfficeNotFoundException;
@@ -19,10 +20,12 @@ public class DutyService {
     private final DutyRepository dutyRepository;
     private final DoctorRepository doctorRepository;
     private final OfficeRepository officeRepository;
-    public DutyService(DutyRepository dutyRepository, DoctorRepository doctorRepository, OfficeRepository officeRepository) {
+    private final AppointmentRepository appointmentRepository;
+    public DutyService(DutyRepository dutyRepository, DoctorRepository doctorRepository, OfficeRepository officeRepository, AppointmentRepository appointmentRepository) {
         this.dutyRepository = dutyRepository;
         this.doctorRepository = doctorRepository;
         this.officeRepository = officeRepository;
+        this.appointmentRepository = appointmentRepository;
     }
 
     /**
@@ -96,15 +99,31 @@ public class DutyService {
     }
 
     /**
-     * Deletes duty by id.
+     * Deletes duty by id. Checks if there are any booked appointments during this duty.
      *
      * @param id id of the duty to delete
      * @throws   DutyNotFoundException if duty with the given id is not found
+     * @throws   IllegalStateException if there is an appointment with this doctor in this office during this duty
      */
     public void deleteDutyById(Long id) throws DutyNotFoundException {
-        if(!dutyRepository.existsById(id)) {
-            throw new DutyNotFoundException(id);
+        Duty duty = dutyRepository.findById(id)
+                .orElseThrow(() -> new DutyNotFoundException(id));
+
+        boolean hasAppointments = appointmentRepository
+                .findAllByDoctorAndOffice(duty.getDoctor(), duty.getOffice())
+                .stream()
+                .filter(a -> a.getDate().getDayOfWeek().equals(duty.getDayOfWeek()))
+                .anyMatch(a ->
+                        a.getStartTime().isBefore(duty.getEndTime())
+                                && a.getEndTime().isAfter(duty.getStartTime())
+                );
+        if (hasAppointments) {
+            throw new IllegalStateException(
+                    "Cannot delete duty: there are appointments scheduled during this duty"
+            );
         }
         dutyRepository.deleteById(id);
     }
+
+
 }
