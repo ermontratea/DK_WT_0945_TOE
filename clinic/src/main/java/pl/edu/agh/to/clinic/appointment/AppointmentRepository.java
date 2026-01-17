@@ -25,4 +25,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     );
 
     Collection<Appointment> findAllByDoctorAndOffice(Doctor doctor, Office office);
+
+    boolean existsByPatientId(Long id);
 }

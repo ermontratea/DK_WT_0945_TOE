@@ -2,10 +2,9 @@ package pl.edu.agh.to.clinic.patient;
 
 import org.springframework.stereotype.Service;
 import pl.edu.agh.to.clinic.appointment.AppointmentRepository;
-import pl.edu.agh.to.clinic.exceptions.AppointmentNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.PatientNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
-import pl.edu.agh.to.clinic.patient.PatientDto;
+
 import java.util.List;
 
 @Service
@@ -78,8 +77,8 @@ public class PatientService {
         if (!patientRepository.existsById(id)) {
             throw new PatientNotFoundException(id);
         }
-        if (appointmentRepository.existsById(id)) {
-            throw new IllegalStateException("You can't delete a patient with booked appointments");
+        if (appointmentRepository.existsByPatientId(id)) {
+            throw new IllegalStateException("Cannot delete patient with existing appointments");
         }
         patientRepository.deleteById(id);
     }

@@ -67,6 +67,10 @@ public class PatientApiClient {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 404) {
             throw new PatientNotFoundException(id);
+        } else if (response.statusCode() == 409) {
+            throw new RuntimeException("Cannot delete patient with existing appointments");
+        } else if (response.statusCode() >= 400) {
+            throw new RuntimeException("Server returned error: " + response.statusCode() + " " + response.body());
         }
     }
 }
