@@ -187,24 +187,53 @@ public class ClinicApplicationFX extends Application{
             VBox content=new VBox(10);
             Label specializationLabel=new Label("Specialization: " +  doctor.getSpecialization());
             Label addressLabel=new Label("Address: " +  doctor.getAddress());
-            TextArea dutiesArea=new TextArea();
-            dutiesArea.setWrapText(true);
-            dutiesArea.setEditable(false);
-            StringBuilder sb = new StringBuilder();
-            List<DutyDto> duties =dutyApi.getDuties().stream().filter(d->d.getDoctorId().equals(doctor.getId())).toList();
-            if (!duties.isEmpty()) {
-                for (DutyDto d : duties) {
-                    OfficeDto office = officeApi.getOfficeById(d.getOfficeId());
-                    int roomNumber = office.getRoomNumber();
-                    sb.append(d.getDayOfWeek()).append(" | Office ").append(roomNumber).append(" | ").append(d.getStartTime())
-                            .append(" - ").append(d.getEndTime()).append("\n");
-                }
-            }else {
-                sb.append("No duties assigned.");
-            }
 
-            dutiesArea.setText(sb.toString());
-            content.getChildren().addAll(specializationLabel, addressLabel, new Label("Duties: "),dutiesArea);
+            List<DutyDto> duties =dutyApi.getDuties().stream().filter(d->d.getDoctorId().equals(doctor.getId())).toList();
+            List<OfficeDto> offices=officeApi.getOffices();
+            ListView<DutyDto> dutyListView = new ListView<>();
+            dutyListView.getItems().addAll(duties);
+
+            dutyListView.setCellFactory(lv -> new ListCell<>() {
+                @Override
+                protected void updateItem(DutyDto duty, boolean empty) {
+                    super.updateItem(duty, empty);
+                    if (empty || duty == null) {
+                        setText(null);
+                    } else {
+                        OfficeDto office = offices.stream()
+                                .filter(d -> d.getId().equals(duty.getOfficeId()))
+                                .findFirst()
+                                .orElse(null);
+
+                        String room = office != null
+                                ? "Office " + office.getRoomNumber()
+                                : "Unknown office";
+
+                        setText(
+                                duty.getDayOfWeek() + " | " +
+                                        room + " | " +
+                                        duty.getStartTime() + " - " +
+                                        duty.getEndTime()
+                        );
+                    }
+                }
+            });
+            Button deleteDutyButton = new Button("Delete selected duty");
+            deleteDutyButton.setOnAction(e -> {
+                DutyDto selected = dutyListView.getSelectionModel().getSelectedItem();
+                if (selected == null) {
+                    showMessage("Select a duty to delete.");
+                    return;
+                }
+                try {
+                    dutyApi.deleteDuty(selected.getId());
+                    dutyListView.getItems().remove(selected);
+                    showMessage("Duty deleted.");
+                } catch (Exception ex) {
+                    showMessage("Error deleting duty: " + ex.getMessage());
+                }
+            });
+            content.getChildren().addAll(specializationLabel, addressLabel, new Label("Duties: "),dutyListView, deleteDutyButton);
             dialog.getDialogPane().setContent(content);
             dialog.setWidth(400);
             dialog.setHeight(500);
@@ -540,28 +569,58 @@ public class ClinicApplicationFX extends Application{
             dialog.setTitle("Office Details");
             dialog.setHeaderText("Room: " + office.getRoomNumber());
             VBox content=new VBox(10);
-            TextArea dutiesArea=new TextArea();
-            dutiesArea.setWrapText(true);
-            dutiesArea.setEditable(false);
-            StringBuilder sb = new StringBuilder();
-            List<DutyDto> duties =dutyApi.getDuties().stream().filter(d->d.getOfficeId().equals(office.getId())).toList();
-            if (!duties.isEmpty()) {
-                List<DoctorListDto> doctors=doctorApi.getDoctors();
-                for (DutyDto d : duties) {
-                    DoctorListDto doctor=doctors.stream().filter(doc->doc.getId().equals(d.getDoctorId())).findFirst().orElse(null);
-                    String doctorName = doctor != null ? doctor.getFirstName() + " " + doctor.getLastName() : "Unknown";
-                    sb.append(doctorName).append(" | ").append(d.getDayOfWeek()).append(" | ").append(d.getStartTime())
-                            .append(" - ").append(d.getEndTime()).append("\n");
-                }
-            }else {
-                sb.append("No duties assigned.");
-            }
 
-            dutiesArea.setText(sb.toString());
+            List<DutyDto> duties =dutyApi.getDuties().stream().filter(d->d.getOfficeId().equals(office.getId())).toList();
+            List<DoctorListDto> doctors=doctorApi.getDoctors();
+            ListView<DutyDto> dutyListView = new ListView<>();
+            dutyListView.getItems().addAll(duties);
+            dutyListView.setCellFactory(lv -> new ListCell<>() {
+                @Override
+                protected void updateItem(DutyDto duty, boolean empty) {
+                    super.updateItem(duty, empty);
+                    if (empty || duty == null) {
+                        setText(null);
+                    } else {
+                        DoctorListDto doctor = doctors.stream()
+                                .filter(d -> d.getId().equals(duty.getDoctorId()))
+                                .findFirst()
+                                .orElse(null);
+
+                        String doctorName = doctor != null
+                                ? doctor.getFirstName() + " " + doctor.getLastName()
+                                : "Unknown";
+
+                        setText(
+                                doctorName + " | " +
+                                        duty.getDayOfWeek() + " | " +
+                                        duty.getStartTime() + " - " +
+                                        duty.getEndTime()
+                        );
+                    }
+                }
+            });
+            Button deleteDutyButton = new Button("Delete selected duty");
+
+            deleteDutyButton.setOnAction(e -> {
+                DutyDto selected = dutyListView.getSelectionModel().getSelectedItem();
+                if (selected == null) {
+                    showMessage("Select a duty to delete.");
+                    return;
+                }
+
+                try {
+                    dutyApi.deleteDuty(selected.getId());
+                    dutyListView.getItems().remove(selected);
+                    showMessage("Duty deleted.");
+                } catch (Exception ex) {
+                    showMessage("Error deleting duty: " + ex.getMessage());
+                }
+            });
+            content.getChildren().addAll(new Label("Duties: "),dutyListView,deleteDutyButton);
             dialog.getDialogPane().setContent(content);
-            content.getChildren().addAll(new Label("Duties: "),dutiesArea);
             dialog.setWidth(400);
             dialog.setHeight(500);
+
             ButtonType deleteButton=new ButtonType("Delete office", ButtonBar.ButtonData.OK_DONE);
             dialog.getDialogPane().getButtonTypes().addAll(deleteButton, ButtonType.CLOSE);
             dialog.showAndWait().ifPresent(button-> {
