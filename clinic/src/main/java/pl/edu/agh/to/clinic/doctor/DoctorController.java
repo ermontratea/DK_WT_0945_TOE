@@ -47,8 +47,8 @@ public class DoctorController {
 
     @GetMapping(produces = "application/json")
     @Operation(
-            summary = "Get all doctors",
-            description = "Returns a list of all doctors"
+            summary = "Get doctors",
+            description = "Returns a list of all doctors or doctors filtered by specialization"
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -57,8 +57,8 @@ public class DoctorController {
                     content = @Content(schema = @Schema(implementation = DoctorListDto.class))
             )
     })
-    public List<DoctorListDto> getDoctors() {
-        return doctorService.getDoctors();
+    public List<DoctorListDto> getDoctors(@RequestParam(required = false) Specialization specialization) {
+        return doctorService.getDoctors(specialization);
     }
 
     @GetMapping(value ="{id}", produces = "application/json")

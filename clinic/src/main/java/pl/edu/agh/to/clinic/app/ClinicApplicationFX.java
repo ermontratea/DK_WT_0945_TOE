@@ -23,11 +23,14 @@ import pl.edu.agh.to.clinic.doctor.DoctorListDto;
 import pl.edu.agh.to.clinic.office.OfficeDto;
 import pl.edu.agh.to.clinic.patient.PatientDto;
 import pl.edu.agh.to.clinic.patient.PatientListDto;
+import pl.edu.agh.to.clinic.appointment.AppointmentApiClient;
+import pl.edu.agh.to.clinic.appointment.AppointmentDto;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 
 import static java.lang.Integer.parseInt;
 
@@ -36,6 +39,7 @@ public class ClinicApplicationFX extends Application{
     private final PatientApiClient patientApi=new PatientApiClient();
     private final OfficeApiClient officeApi=new OfficeApiClient();
     private final DutyApiClient dutyApi=new DutyApiClient();
+    private final AppointmentApiClient appointmentApi=new AppointmentApiClient();
     private final ListView<DoctorListDto> doctorListView=new ListView<>();
     private final ListView<OfficeDto> officeListView=new ListView<>();
     private final ListView<PatientListDto> patientListView=new ListView<>();
@@ -366,6 +370,36 @@ public class ClinicApplicationFX extends Application{
 
             addDutyOrShowError(d6, o2, DayOfWeek.FRIDAY,    LocalTime.of(12, 0), LocalTime.of(14, 0));
 
+            List<PatientListDto> patients = patientApi.getPatients().stream()
+                    .sorted((a, b) -> Long.compare(a.getId(), b.getId()))
+                    .toList();
+
+            PatientListDto p1 = patients.get(0);
+            PatientListDto p2 = patients.get(1);
+            PatientListDto p3 = patients.get(2);
+            PatientListDto p4 = patients.get(3);
+
+
+            LocalDate monday    = nextDateForDay(DayOfWeek.MONDAY);
+            LocalDate tuesday   = nextDateForDay(DayOfWeek.TUESDAY);
+            LocalDate wednesday = nextDateForDay(DayOfWeek.WEDNESDAY);
+            LocalDate thursday  = nextDateForDay(DayOfWeek.THURSDAY);
+            LocalDate friday    = nextDateForDay(DayOfWeek.FRIDAY);
+
+
+            addSampleAppointment(p1, d1, monday, LocalTime.of(8, 0),  LocalTime.of(8, 15), o1);
+            addSampleAppointment(p1, d1, monday, LocalTime.of(12, 15), LocalTime.of(12, 30), o3);
+            addSampleAppointment(p1, d2, tuesday, LocalTime.of(10, 0), LocalTime.of(10, 15), o2);
+
+            addSampleAppointment(p2, d2, tuesday, LocalTime.of(10, 15), LocalTime.of(10, 30), o2);
+            addSampleAppointment(p2, d3, wednesday, LocalTime.of(12, 0),  LocalTime.of(12, 15), o3);
+            addSampleAppointment(p2, d3, wednesday, LocalTime.of(12, 15), LocalTime.of(12, 30), o3);
+
+            addSampleAppointment(p3, d4, thursday, LocalTime.of(8, 0),  LocalTime.of(8, 15), o1);
+            addSampleAppointment(p3, d4, thursday, LocalTime.of(8, 15), LocalTime.of(8, 30), o1);
+
+            addSampleAppointment(p4, d5, friday, LocalTime.of(10, 0), LocalTime.of(10, 15), o1);
+
             loadDoctors();
             loadOffices();
             patientsPanel.loadPatients();
@@ -374,6 +408,37 @@ public class ClinicApplicationFX extends Application{
         }catch (Exception ex){
             showMessage("Unexpected error: " + ex.getMessage());
 
+        }
+    }
+
+    private LocalDate nextDateForDay(DayOfWeek day) {
+        LocalDate date = LocalDate.now().plusDays(1);
+        while (date.getDayOfWeek() != day) {
+            date = date.plusDays(1);
+        }
+        return date;
+    }
+
+    private void addSampleAppointment(
+            PatientListDto patient,
+            DoctorListDto doctor,
+            LocalDate date,
+            LocalTime start,
+            LocalTime end,
+            OfficeDto office
+    ) {
+        try {
+            AppointmentDto appt = new AppointmentDto();
+            appt.setPatientId(patient.getId());
+            appt.setDoctorId(doctor.getId());
+            appt.setDate(date);
+            appt.setStartTime(start);
+            appt.setEndTime(end);
+            appt.setOfficeId(office.getId());
+
+            appointmentApi.addAppointment(appt);
+        } catch (Exception ex) {
+            showMessage("Error adding appointment: " + ex.getMessage());
         }
     }
 

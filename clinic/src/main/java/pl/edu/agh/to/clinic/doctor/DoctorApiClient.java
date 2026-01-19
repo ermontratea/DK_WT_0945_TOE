@@ -77,4 +77,20 @@ public class DoctorApiClient {
             throw new RuntimeException(response.body());
         }
     }
+
+    // GET DOCTOR LIST BY SPECIALIZATION
+    public List<DoctorListDto> getDoctorsBySpecialization(Specialization specialization) throws InterruptedException, IOException {
+
+        HttpRequest request = HttpRequest.newBuilder(URI.create(BASE_URL + "?specialization=" + specialization.name())).GET().build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() >= 400) {
+            throw new RuntimeException("Server returned error: " + response.statusCode());
+        }
+
+        return mapper.readValue(response.body(), new TypeReference<List<DoctorListDto>>() {});
+    }
+
+
 }

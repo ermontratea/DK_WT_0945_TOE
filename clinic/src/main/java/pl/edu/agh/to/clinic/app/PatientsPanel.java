@@ -8,6 +8,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import pl.edu.agh.to.clinic.appointment.AppointmentApiClient;
 import pl.edu.agh.to.clinic.appointment.AppointmentDto;
+import pl.edu.agh.to.clinic.doctor.Specialization;
 import pl.edu.agh.to.clinic.duty.DutyApiClient;
 import pl.edu.agh.to.clinic.duty.DutyDto;
 import pl.edu.agh.to.clinic.doctor.DoctorApiClient;
@@ -16,6 +17,7 @@ import pl.edu.agh.to.clinic.office.OfficeApiClient;
 import pl.edu.agh.to.clinic.patient.PatientApiClient;
 import pl.edu.agh.to.clinic.patient.PatientListDto;
 
+import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -76,14 +78,46 @@ public class PatientsPanel extends VBox {
         VBox root = new VBox(10);
         root.setPadding(new Insets(10));
 
+        ComboBox<Specialization> specializationBox = new ComboBox<>();
+        specializationBox.getItems().addAll(Specialization.values());
+        specializationBox.setPromptText("Select specialization");
+
         ComboBox<DoctorListDto> doctorBox = new ComboBox<>();
-        try {
-            doctorBox.getItems().setAll(doctorApi.getDoctors());
-        } catch (Exception ex) {
-            showError("Error loading doctors: " + ex.getMessage());
-            return;
-        }
         doctorBox.setPromptText("Select doctor");
+        doctorBox.setDisable(true);
+
+        specializationBox.setOnAction(e -> {
+            Specialization specialization = specializationBox.getValue();
+
+            // reset UI
+            doctorBox.getItems().clear();
+            doctorBox.setValue(null);
+            doctorBox.setDisable(true);
+            doctorBox.setPromptText("Select doctor");
+
+            if (specialization == null) {
+                return;
+            }
+
+            try {
+                List<DoctorListDto> doctors = doctorApi.getDoctorsBySpecialization(specialization);
+
+                if (doctors.isEmpty()) {
+                    doctorBox.setPromptText("No doctors found with the selected specialization");
+                    doctorBox.setDisable(true);
+                } else {
+                    doctorBox.getItems().setAll(doctors);
+                    doctorBox.setDisable(false);
+                    doctorBox.setPromptText("Select doctor");
+                }
+
+            } catch (IOException | InterruptedException ex) {
+                showError("Could not fetch doctors for selected specialization.");
+            }
+        });
+
+
+
 
         DatePicker startDatePicker = new DatePicker(LocalDate.now());
         DatePicker endDatePicker = new DatePicker(LocalDate.now().plusDays(7));
@@ -143,6 +177,7 @@ public class PatientsPanel extends VBox {
         });
 
         root.getChildren().addAll(
+                new Label("Select specialization:"), specializationBox,
                 new Label("Select doctor:"), doctorBox,
                 new Label("Start date:"), startDatePicker,
                 new Label("End date:"), endDatePicker,
