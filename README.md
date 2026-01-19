@@ -22,6 +22,8 @@ Content-Type: application/json
   "address": "A 1"
 }
  ```
+>PESEL must be unique.
+
 - To see the list of doctors
 ```http
 GET /doctors
@@ -34,7 +36,7 @@ GET /doctors/{id}
 ```http
 DELETE /doctors/{id}
  ```
-Deleting doctor is blocked if duties are assigned to them.
+>Deleting doctor is blocked if duties are assigned to them.
 
 ### Patients
 - Add patient (Piotr Lis, PESEL: 77777777777, address: Bee 1) with:
@@ -49,6 +51,7 @@ Content-Type: application/json
   "address": "Bee 1"
 }
  ```
+>PESEL must be unique.
 - To see the list of patients
 ```http
 GET /patients
@@ -61,6 +64,7 @@ GET /patients/{id}
 ```http
 DELETE /patients/{id}
  ```
+>Deleting a patient is blocked if the patient has appointments.
 
 ### Offices
 - Add office (room number: 101) with:
@@ -84,7 +88,7 @@ GET /offices/{id}
 ```http
 DELETE /offices/{id}
  ```
-Deleting office is blocked if duties are assigned to it.
+>Deleting office is blocked if duties are assigned to it.
 
 ### Duties
 - Assign duty (doctor id: 1, office id: 1, day of week: Monday, start time: 08:00, end time: 10:00) with:
@@ -101,6 +105,8 @@ Content-Type: application/json
 }
 
  ```
+>Doctor cannot have overlapping duties, Office cannot have overlapping duties, startTime must be before endTime.
+
 - To see the list of duties
 ```http
 GET /duties
@@ -112,6 +118,36 @@ GET /duties/{id}
 - Delete duty with
 ```http
 DELETE /duties/{id}
+ ```
+>Deleting a duty is blocked if there are appointments related to that doctor and office.
+
+### Appointments
+- Schedule appointment (patient id: 1, doctor id: 2, office id: 3, date: 2026-01-20, start time: 08:00, end time: 08:15) with:
+```http
+POST /appointments
+Content-Type: application/json
+
+{
+  "patientId": 1,
+  "doctorId": 2,
+  "officeId": 3,
+  "date": "2026-01-20",
+  "startTime": "08:00",
+  "endTime": "08:15"
+}
+ ```
+>Doctor must have a duty for the given office and dayOfWeek (from date) and time range, Appointment time slot must not overlap with an existing appointment for the same doctor, office and date, startTime must be before endTime.
+- To see the list of appointments
+```http
+GET /appointments
+ ```
+- See appointment details
+```http
+GET /appointments/{id}
+ ```
+- Delete appointment with
+```http
+DELETE /appointments/{id}
  ```
 
 ## Frontend Access
@@ -138,6 +174,7 @@ It adds:
 - **3 offices**
 - **5 patients**
 - **15 duties**
+- **9 appointments**
 
 After adding the sample data, the application looks like this:
 
@@ -167,6 +204,12 @@ There is also a button **Delete doctor** to remove the selected doctor.
 
 > Deleting a doctor is blocked if duties are assigned to them.
 
+### Deleting duty
+To delete duty:
+- select it from the list in doctor details
+- click **Delete duty** button.
+> Deleting duty is blocked if appointments are assigned to it.
+
 ### Adding a doctor
 Click **ADD DOCTOR** to open a modal window.  
 Fill in all fields, choose specialization and then click **Add** to create the doctor.
@@ -177,6 +220,7 @@ You can also click **Cancel** to close the window without saving.
 ### Deleting all doctors
 The button **DELETE ALL DOCTORS** removes all doctors from the database (and refreshes the list immediately).
 
+
 ---
 
 ## Patients
@@ -184,12 +228,25 @@ The button **DELETE ALL DOCTORS** removes all doctors from the database (and ref
 ### Viewing patient details
 When you click a patient in the list, the application displays:
 - full name,
-- address
+- address,
+- list of appointments assigned to the patient
 
 There is also a button **Delete patient** to remove the selected patient.
 
 ![Patient details](photos/patient.png)
+> Deleting patient is blocked if appointments are assigned to them.
+> 
+## Appointments
+### Scheduling an appointment from patient details
+In the patient details view there is a button **Schedule Appointment**, click it to open a scheduling window.
+Select specialization, then doctor with the selected specialization. Select preferred date range, click **Show available slots**
+Choose one available slot from the list. Click **Schedule Appointment** to confirm.
 
+
+![Schedule appointment](photos/scheduleAppointment.png)
+### Deleting an appointment from patient details
+In the patient details view selecting an appointment from the appointments list and clicking the Delete appointment button,
+**Delete appointment** removes the selected appointment. The list refreshes automatically after deletion.
 ### Adding a patient
 Click **ADD PATIENT** to open a modal window.  
 Fill in the data and click **Add** (or **Cancel** to close without saving).
@@ -208,8 +265,13 @@ When you click an office in the list, the application displays:
 - There is also a button **Delete office** to remove the selected office.
 
 ![Office details](photos/office.png)
-
 > Deleting an office is blocked if duties are assigned to it.
+
+### Deleting duty
+To delete duty:
+- select it from the list in office details
+- click **Delete duty** button.
+> Deleting duty is blocked if appointments are assigned to it.
 
 ### Adding an office
 Click **ADD OFFICE** to open a modal window.  
@@ -230,6 +292,13 @@ then click **Check availability** to reload lists of available doctors and offic
 Choose a doctor and an office from the list, then click **Assign** to save the duty.
 
 ![Assign duty modal](photos/assignDuty.png)
+
+### Deleting duty
+To delete duty:
+- select it from the list in doctor or office details
+- click **Delete duty** button.
+> Deleting duty is blocked if appointments are assigned to it.
+
 ## API Documentation (Swagger)
 The REST API is documented using **Swagger / OpenAPI**.
 
