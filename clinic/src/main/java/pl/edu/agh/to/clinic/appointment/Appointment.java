@@ -70,4 +70,12 @@ public class Appointment {
     public Long getId() {
         return id;
     }
+
+    public void setPatient(Patient patient) { this.patient = patient; }
+    public void setDoctor(Doctor doctor) { this.doctor = doctor; }
+    public void setOffice(Office office) { this.office = office; }
+    public void setDate(LocalDate date) { this.date = date; }
+    public void setStartTime(LocalTime startTime) { this.startTime = startTime; }
+    public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
+
 }

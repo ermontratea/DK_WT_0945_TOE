@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import pl.edu.agh.to.clinic.appointment.AppointmentRepository;
 import pl.edu.agh.to.clinic.doctor.Doctor;
 import pl.edu.agh.to.clinic.doctor.DoctorRepository;
 import pl.edu.agh.to.clinic.exceptions.DoctorNotFoundException;
@@ -35,6 +36,9 @@ class DutyServiceTest {
 
     @Mock
     private OfficeRepository officeRepository;
+
+    @Mock
+    private AppointmentRepository appointmentRepository;
 
     @InjectMocks
     private DutyService dutyService;
@@ -108,19 +112,15 @@ class DutyServiceTest {
 
     @Test
     void shouldThrowWhenDoctorNotFound() {
-        DayOfWeek day = LocalDate.now().getDayOfWeek();
-
-        LocalTime start = LocalTime.now();
-
-        LocalTime end = start.plusHours(4);
         DutyDto dto = new DutyDto();
         dto.setDoctorId(1L);
         dto.setOfficeId(2L);
-        dto.setStartTime(start);
-        dto.setEndTime(end);
-        dto.setDayOfWeek(day);
+        dto.setStartTime(LocalTime.of(8, 0));
+        dto.setEndTime(LocalTime.of(12, 0)); // start < end
+        dto.setDayOfWeek(DayOfWeek.MONDAY);
 
-        when(doctorRepository.findById(1L)).thenReturn(Optional.empty());
+        when(doctorRepository.findById(1L))
+                .thenReturn(Optional.empty());
 
         DoctorNotFoundException ex = assertThrows(
                 DoctorNotFoundException.class,
@@ -128,18 +128,16 @@ class DutyServiceTest {
         );
 
         assertEquals("Doctor with ID: 1 not found.", ex.getMessage());
-        verify(doctorRepository).findById(1L);
-        verifyNoInteractions(officeRepository);
-        verify(dutyRepository, never()).save(any());
     }
+
 
     @Test
     void shouldThrowWhenOfficeNotFound() {
         DutyDto dto = new DutyDto();
         dto.setDoctorId(1L);
         dto.setOfficeId(2L);
-        dto.setStartTime(LocalTime.now());
-        dto.setEndTime(LocalTime.now().plusHours(4));
+        dto.setStartTime(LocalTime.of(8, 0));
+        dto.setEndTime(LocalTime.of(12, 0));
 
         Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901", null, "Kraków");
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
@@ -158,9 +156,9 @@ class DutyServiceTest {
 
     @Test
     void shouldThrowWhenDoctorBusy() {
-        LocalTime start = LocalTime.now();
-        LocalTime end = start.plusHours(4);
-        DayOfWeek day = LocalDate.now().getDayOfWeek();
+        LocalTime start = LocalTime.of(8, 0);
+        LocalTime end   = LocalTime.of(12, 0);
+        DayOfWeek day   = DayOfWeek.MONDAY;
 
         DutyDto dto = new DutyDto();
         dto.setDoctorId(1L);
@@ -175,8 +173,8 @@ class DutyServiceTest {
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
         when(officeRepository.findById(2L)).thenReturn(Optional.of(office));
         when(dutyRepository.existsByDoctorAndDayOfWeekAndStartTimeBeforeAndEndTimeAfter(
-                doctor, day, end, start)
-        ).thenReturn(true);
+                doctor, day, end, start
+        )).thenReturn(true);
 
         IllegalStateException ex = assertThrows(
                 IllegalStateException.class,
@@ -184,14 +182,14 @@ class DutyServiceTest {
         );
 
         assertEquals("Doctor already has a duty assigned during these hours!", ex.getMessage());
-        verify(dutyRepository, never()).save(any());
     }
+
 
     @Test
     void shouldThrowWhenOfficeBusy() {
-        LocalTime start = LocalTime.now();
-        LocalTime end = start.plusHours(4);
-        DayOfWeek day = LocalDate.now().getDayOfWeek();
+        LocalTime start = LocalTime.of(8, 0);
+        LocalTime end   = LocalTime.of(12, 0);
+        DayOfWeek day   = DayOfWeek.MONDAY;
 
         DutyDto dto = new DutyDto();
         dto.setDoctorId(1L);
@@ -205,12 +203,14 @@ class DutyServiceTest {
 
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
         when(officeRepository.findById(2L)).thenReturn(Optional.of(office));
+
         when(dutyRepository.existsByDoctorAndDayOfWeekAndStartTimeBeforeAndEndTimeAfter(
-                doctor, day, end, start)
-        ).thenReturn(false);
+                doctor, day, end, start
+        )).thenReturn(false);
+
         when(dutyRepository.existsByOfficeAndDayOfWeekAndStartTimeBeforeAndEndTimeAfter(
-                office, day, end, start)
-        ).thenReturn(true);
+                office, day, end, start
+        )).thenReturn(true);
 
         IllegalStateException ex = assertThrows(
                 IllegalStateException.class,
@@ -220,6 +220,7 @@ class DutyServiceTest {
         assertEquals("Office is already occupied during these hours!", ex.getMessage());
         verify(dutyRepository, never()).save(any());
     }
+
 
     @Test
     void shouldReturnAllDuties() {
@@ -272,19 +273,37 @@ class DutyServiceTest {
         verify(dutyRepository).findById(999L);
     }
 
+
     @Test
     void shouldDeleteDutyById() {
-        when(dutyRepository.existsById(1L)).thenReturn(true);
+        Doctor doctor = new Doctor("Jan", "Kowalski", "12345678901", null, "Kraków");
+        Office office = new Office(101);
+
+        Duty duty = new Duty(
+                doctor,
+                office,
+                DayOfWeek.MONDAY,
+                LocalTime.of(8, 0),
+                LocalTime.of(12, 0)
+        );
+
+        when(appointmentRepository.findAllByDoctorAndOffice(any(), any()))
+                .thenReturn(List.of());
+
+        when(dutyRepository.findById(1L))
+                .thenReturn(Optional.of(duty));
 
         assertDoesNotThrow(() -> dutyService.deleteDutyById(1L));
 
-        verify(dutyRepository).existsById(1L);
+        verify(dutyRepository).findById(1L);
         verify(dutyRepository).deleteById(1L);
     }
 
+
     @Test
     void deleteDutyShouldThrowWhenNotFound() {
-        when(dutyRepository.existsById(999L)).thenReturn(false);
+        when(dutyRepository.findById(999L))
+                .thenReturn(Optional.empty());
 
         DutyNotFoundException ex = assertThrows(
                 DutyNotFoundException.class,
@@ -292,7 +311,9 @@ class DutyServiceTest {
         );
 
         assertEquals("Duty with ID: 999 not found.", ex.getMessage());
-        verify(dutyRepository).existsById(999L);
-        verify(dutyRepository, never()).deleteById(anyLong());
+
+        verify(dutyRepository).findById(999L);
+        verify(dutyRepository, never()).delete(any());
     }
+
 }

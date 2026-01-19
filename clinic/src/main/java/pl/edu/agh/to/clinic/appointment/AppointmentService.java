@@ -74,8 +74,9 @@ public class AppointmentService {
         }
 
         boolean doctorBusy = appointmentRepository
-                .existsByDoctorAndDateAndStartTimeBeforeAndEndTimeAfter(
+                .existsByDoctorAndOfficeAndDateAndStartTimeBeforeAndEndTimeAfter(
                         doctor,
+                        office,
                         dto.getDate(),
                         dto.getEndTime(),
                         dto.getStartTime()

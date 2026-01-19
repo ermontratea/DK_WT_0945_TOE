@@ -83,20 +83,34 @@ class DoctorServiceTest {
     }
 
     @Test
-    void shouldReturnAllDoctorsAsDtos() {
-        Doctor d1 = new Doctor("Anna", "Nowak", "11111111111",
-                Specialization.DERMATOLOGY, "Warszawa");
-        Doctor d2 = new Doctor("Jan", "Kowalski", "22222222222",
-                Specialization.CARDIOLOGY, "Kraków");
+    void shouldReturnAllDoctorsWhenSpecializationIsNull() {
+        Doctor d1 = new Doctor("A", "B", "123", Specialization.CARDIOLOGY, "X");
+        Doctor d2 = new Doctor("C", "D", "456", Specialization.DERMATOLOGY, "Y");
 
         when(doctorRepository.findAll()).thenReturn(List.of(d1, d2));
 
-        List<DoctorListDto> result = doctorService.getDoctors();
+        List<DoctorListDto> result = doctorService.getDoctors(null);
 
         assertEquals(2, result.size());
-        assertEquals("Anna", result.get(0).getFirstName());
-        assertEquals("Jan", result.get(1).getFirstName());
         verify(doctorRepository).findAll();
+        verify(doctorRepository, never()).findBySpecialization(any());
+    }
+
+    @Test
+    void shouldReturnDoctorsBySpecialization() {
+        Doctor d1 = new Doctor("A", "B", "123", Specialization.CARDIOLOGY, "X");
+
+        when(doctorRepository.findBySpecialization(Specialization.CARDIOLOGY))
+                .thenReturn(List.of(d1));
+
+        List<DoctorListDto> result =
+                doctorService.getDoctors(Specialization.CARDIOLOGY);
+
+        assertEquals(1, result.size());
+        assertEquals(Specialization.CARDIOLOGY, result.get(0).getSpecialization());
+
+        verify(doctorRepository).findBySpecialization(Specialization.CARDIOLOGY);
+        verify(doctorRepository, never()).findAll();
     }
 
     @Test

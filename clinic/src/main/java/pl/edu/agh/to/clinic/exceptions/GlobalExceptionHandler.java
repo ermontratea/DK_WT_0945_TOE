@@ -19,7 +19,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
-    @ExceptionHandler({DoctorNotFoundException.class, OfficeNotFoundException.class, PatientNotFoundException.class, DutyNotFoundException.class})
+    @ExceptionHandler({DoctorNotFoundException.class, OfficeNotFoundException.class, PatientNotFoundException.class, DutyNotFoundException.class, AppointmentNotFoundException.class})
     public ResponseEntity<Map<String, String>> handleNotFound(Exception e) {
         Map<String, String> body = new HashMap<>();
         body.put("error", e.getMessage());

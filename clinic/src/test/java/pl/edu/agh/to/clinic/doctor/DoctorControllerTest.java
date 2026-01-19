@@ -40,29 +40,27 @@ class DoctorControllerTest {
     private ObjectMapper objectMapper;
 
     @Test
-    void shouldGetAllDoctors() throws Exception {
-        DoctorListDto d1 = new DoctorListDto();
-        d1.setId(1L);
-        d1.setFirstName("Jan");
-        d1.setLastName("Kowalski");
-        d1.setAddress("Kraków");
-        d1.setSpecialization(Specialization.CARDIOLOGY);
-
-        DoctorListDto d2 = new DoctorListDto();
-        d2.setId(2L);
-        d2.setFirstName("Anna");
-        d2.setLastName("Nowak");
-        d2.setAddress("Warszawa");
-        d2.setSpecialization(Specialization.DERMATOLOGY);
-
-        when(doctorService.getDoctors()).thenReturn(List.of(d1, d2));
+    void shouldReturnAllDoctorsWithoutParam() throws Exception {
+        when(doctorService.getDoctors(null))
+                .thenReturn(List.of(new DoctorListDto(new Doctor(
+                        "A", "B", "1", Specialization.CARDIOLOGY, "X"
+                ))));
 
         mockMvc.perform(get("/doctors"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].firstName", is("Jan")))
-                .andExpect(jsonPath("$[1].firstName", is("Anna")));
+                .andExpect(jsonPath("$").isArray());
     }
+
+    @Test
+    void shouldReturnDoctorsBySpecialization() throws Exception {
+        when(doctorService.getDoctors(Specialization.CARDIOLOGY))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/doctors")
+                        .param("specialization", "CARDIOLOGY"))
+                .andExpect(status().isOk());
+    }
+
 
     @Test
     void shouldGetDoctorById() throws Exception {

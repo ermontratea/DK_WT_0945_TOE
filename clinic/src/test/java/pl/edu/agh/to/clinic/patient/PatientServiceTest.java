@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import pl.edu.agh.to.clinic.appointment.AppointmentRepository;
 import pl.edu.agh.to.clinic.exceptions.PatientNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
 
@@ -19,6 +20,9 @@ class PatientServiceTest {
 
     @Mock
     private PatientRepository patientRepository;
+
+    @Mock
+    private AppointmentRepository appointmentRepository;
 
     @InjectMocks
     private PatientService patientService;
@@ -98,6 +102,7 @@ class PatientServiceTest {
     @Test
     void shouldDeletePatientById() {
         when(patientRepository.existsById(1L)).thenReturn(true);
+        when(appointmentRepository.existsByPatientId(1L)).thenReturn(false);
 
         assertDoesNotThrow(() -> patientService.deletePatientById(1L));
 

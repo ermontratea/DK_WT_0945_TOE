@@ -12,17 +12,9 @@ import java.util.Collection;
 
 @Repository
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
-    boolean existsByDoctorAndDateAndStartTimeBeforeAndEndTimeAfter(Doctor doctor, LocalDate date, LocalTime endTime, LocalTime startTime);
+    boolean existsByDoctorAndOfficeAndDateAndStartTimeBeforeAndEndTimeAfter(Doctor doctor, Office office, LocalDate date, LocalTime endTime, LocalTime startTime);
 
     boolean existsByPatientAndDateAndStartTimeBeforeAndEndTimeAfter(Patient patient, LocalDate date, LocalTime endTime, LocalTime startTime);
-
-    boolean existsByDoctorAndOfficeAndDateAndStartTimeBeforeAndEndTimeAfter(
-            Doctor doctor,
-            Office office,
-            LocalDate date,
-            LocalTime endTime,
-            LocalTime startTime
-    );
 
     Collection<Appointment> findAllByDoctorAndOffice(Doctor doctor, Office office);
 
