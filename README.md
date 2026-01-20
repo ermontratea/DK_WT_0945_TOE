@@ -2,7 +2,7 @@
 # Clinic App
 
 ## Diagram UML
-![Diagram UML](photos/m3.png)
+![Diagram UML](photos/m3u.png)
 
 
 ## Backend Access
