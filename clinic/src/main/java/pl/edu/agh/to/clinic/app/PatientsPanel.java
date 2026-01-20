@@ -17,7 +17,6 @@ import pl.edu.agh.to.clinic.office.OfficeApiClient;
 import pl.edu.agh.to.clinic.patient.PatientApiClient;
 import pl.edu.agh.to.clinic.patient.PatientListDto;
 
-import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -89,7 +88,13 @@ public class PatientsPanel extends VBox {
         specializationBox.setOnAction(e -> {
             Specialization specialization = specializationBox.getValue();
 
-            // reset UI
+            Runnable disableDoctorBoxNoDoctors = () -> {
+                doctorBox.getItems().clear();
+                doctorBox.setValue(null);
+                doctorBox.setDisable(true);
+                doctorBox.setPromptText("No doctors found with the selected specialization");
+            };
+
             doctorBox.getItems().clear();
             doctorBox.setValue(null);
             doctorBox.setDisable(true);
@@ -102,17 +107,18 @@ public class PatientsPanel extends VBox {
             try {
                 List<DoctorListDto> doctors = doctorApi.getDoctorsBySpecialization(specialization);
 
-                if (doctors.isEmpty()) {
-                    doctorBox.setPromptText("No doctors found with the selected specialization");
-                    doctorBox.setDisable(true);
-                } else {
-                    doctorBox.getItems().setAll(doctors);
-                    doctorBox.setDisable(false);
-                    doctorBox.setPromptText("Select doctor");
+                if (doctors == null || doctors.isEmpty()) {
+                    disableDoctorBoxNoDoctors.run();
+                    return;
                 }
 
-            } catch (IOException | InterruptedException ex) {
-                showError("Could not fetch doctors for selected specialization.");
+                doctorBox.getItems().setAll(doctors);
+                doctorBox.setDisable(false);
+                doctorBox.setPromptText("Select doctor");
+
+            } catch (Exception ex) {
+                showError("Could not fetch doctors for selected specialization: " + ex.getMessage());
+                disableDoctorBoxNoDoctors.run();
             }
         });
 
