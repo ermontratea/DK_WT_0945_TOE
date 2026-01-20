@@ -28,6 +28,11 @@ Content-Type: application/json
 ```http
 GET /doctors
  ```
+- To see doctors filtered by specialization (optional query parameter: Cardiology)
+```http
+GET /doctors?specialization=CARDIOLOGY
+
+ ```
 - See doctor details
 ```http
 GET /doctors/{id}
