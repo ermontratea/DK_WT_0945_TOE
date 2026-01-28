@@ -1,16 +1,19 @@
 package pl.edu.agh.to.clinic.patient;
 
 import org.springframework.stereotype.Service;
+import pl.edu.agh.to.clinic.appointment.AppointmentRepository;
 import pl.edu.agh.to.clinic.exceptions.PatientNotFoundException;
 import pl.edu.agh.to.clinic.exceptions.PeselDuplicationException;
-import pl.edu.agh.to.clinic.patient.PatientDto;
+
 import java.util.List;
 
 @Service
 public class PatientService {
     private final PatientRepository patientRepository;
-    public PatientService(PatientRepository patientRepository) {
+    private final AppointmentRepository appointmentRepository;
+    public PatientService(PatientRepository patientRepository, AppointmentRepository appointmentRepository) {
         this.patientRepository = patientRepository;
+        this.appointmentRepository = appointmentRepository;
     }
 
     /**
@@ -65,12 +68,17 @@ public class PatientService {
     /**
      * Deletes patient by their ID
      * If no patient with the given ID exists, {@link PatientNotFoundException} is thrown.
+     * Checks if the patient has any booked appointments.
      * @param id    the ID of the patient to delete
      * @throws      PatientNotFoundException if no patient with the given ID is found
+     * @throws      IllegalStateException if the patient has booked appointments
      */
     public void deletePatientById(Long id) throws PatientNotFoundException {
         if (!patientRepository.existsById(id)) {
             throw new PatientNotFoundException(id);
+        }
+        if (appointmentRepository.existsByPatientId(id)) {
+            throw new IllegalStateException("Cannot delete patient with existing appointments");
         }
         patientRepository.deleteById(id);
     }

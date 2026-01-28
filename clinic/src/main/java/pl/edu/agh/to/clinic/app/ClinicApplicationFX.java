@@ -23,12 +23,14 @@ import pl.edu.agh.to.clinic.doctor.DoctorListDto;
 import pl.edu.agh.to.clinic.office.OfficeDto;
 import pl.edu.agh.to.clinic.patient.PatientDto;
 import pl.edu.agh.to.clinic.patient.PatientListDto;
+import pl.edu.agh.to.clinic.appointment.AppointmentApiClient;
+import pl.edu.agh.to.clinic.appointment.AppointmentDto;
 
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 
 import static java.lang.Integer.parseInt;
 
@@ -37,13 +39,15 @@ public class ClinicApplicationFX extends Application{
     private final PatientApiClient patientApi=new PatientApiClient();
     private final OfficeApiClient officeApi=new OfficeApiClient();
     private final DutyApiClient dutyApi=new DutyApiClient();
+    private final AppointmentApiClient appointmentApi=new AppointmentApiClient();
     private final ListView<DoctorListDto> doctorListView=new ListView<>();
     private final ListView<OfficeDto> officeListView=new ListView<>();
     private final ListView<PatientListDto> patientListView=new ListView<>();
 
     private VBox doctorsPanel;
-    private VBox patientsPanel;
+    private PatientsPanel patientsPanel = new PatientsPanel();
     private VBox officesPanel;
+
 
     @Override
     public void start(Stage stage) throws Exception{
@@ -70,10 +74,6 @@ public class ClinicApplicationFX extends Application{
         Button addDoctorBtn=new Button("ADD DOCTOR");
         addDoctorBtn.setOnAction(e->addCustomDoctor());
 
-        // DELETE SELECTED DOCTOR BUTTON
-//        Button deleteSelectedDoctorBtn=new Button("DELETE SELECTED DOCTOR");
-//        deleteSelectedDoctorBtn.setOnAction(e->deleteSelectedDoctor());
-//        root.getChildren().add(deleteSelectedDoctorBtn);
 
         // DELETE ALL DOCTORS BUTTON
         Button deleteDoctorsBtn=new Button("DELETE ALL DOCTORS");
@@ -109,7 +109,6 @@ public class ClinicApplicationFX extends Application{
 
 
         doctorsPanel = new VBox(10, new Label("Doctors:"), doctorListView);
-        patientsPanel = new VBox(10, new Label("Patients:"), patientListView);
         officesPanel = new VBox(10, new Label("Offices:"), officeListView);
 
         StackPane content = new StackPane(doctorsPanel, patientsPanel, officesPanel);
@@ -120,10 +119,6 @@ public class ClinicApplicationFX extends Application{
 //LIST CLICK HANDLERS
         doctorListView.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
             if (newV != null) showDoctorDetails(newV.getId());
-        });
-
-        patientListView.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
-            if (newV != null) showPatientDetails(newV.getId());
         });
 
         officeListView.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
@@ -145,7 +140,7 @@ public class ClinicApplicationFX extends Application{
 
         //LOAD LISTS
         loadDoctors();
-        loadPatients();
+        patientsPanel.loadPatients();
         loadOffices();
     }
 
@@ -174,7 +169,6 @@ public class ClinicApplicationFX extends Application{
         dialog.showAndWait();
     }
 
-
     // LOADING DOCTORS
     private void loadDoctors(){
         try {
@@ -187,20 +181,6 @@ public class ClinicApplicationFX extends Application{
         }
     }
 
-    //LOADING PATIENTS
-    private void loadPatients() {
-        try {
-            List<PatientListDto> patients = patientApi.getPatients();
-            patientListView.getItems().setAll(patients);
-        } catch (RuntimeException ex) {
-            showMessage("Error loading patients list: " + ex.getMessage());
-        } catch (Exception ex) {
-            showMessage("Unexpected error: " + ex.getMessage());
-        }
-    }
-
-
-
     // DOCTOR DETAILS
     private void showDoctorDetails(long id){
         try {
@@ -211,24 +191,53 @@ public class ClinicApplicationFX extends Application{
             VBox content=new VBox(10);
             Label specializationLabel=new Label("Specialization: " +  doctor.getSpecialization());
             Label addressLabel=new Label("Address: " +  doctor.getAddress());
-            TextArea dutiesArea=new TextArea();
-            dutiesArea.setWrapText(true);
-            dutiesArea.setEditable(false);
-            StringBuilder sb = new StringBuilder();
-            List<DutyDto> duties =dutyApi.getDuties().stream().filter(d->d.getDoctorId().equals(doctor.getId())).toList();
-            if (!duties.isEmpty()) {
-                for (DutyDto d : duties) {
-                    OfficeDto office = officeApi.getOfficeById(d.getOfficeId());
-                    int roomNumber = office.getRoomNumber();
-                    sb.append(d.getDayOfWeek()).append(" | Office ").append(roomNumber).append(" | ").append(d.getStartTime())
-                            .append(" - ").append(d.getEndTime()).append("\n");
-                }
-            }else {
-                sb.append("No duties assigned.");
-            }
 
-            dutiesArea.setText(sb.toString());
-            content.getChildren().addAll(specializationLabel, addressLabel, new Label("Duties: "),dutiesArea);
+            List<DutyDto> duties =dutyApi.getDuties().stream().filter(d->d.getDoctorId().equals(doctor.getId())).toList();
+            List<OfficeDto> offices=officeApi.getOffices();
+            ListView<DutyDto> dutyListView = new ListView<>();
+            dutyListView.getItems().addAll(duties);
+
+            dutyListView.setCellFactory(lv -> new ListCell<>() {
+                @Override
+                protected void updateItem(DutyDto duty, boolean empty) {
+                    super.updateItem(duty, empty);
+                    if (empty || duty == null) {
+                        setText(null);
+                    } else {
+                        OfficeDto office = offices.stream()
+                                .filter(d -> d.getId().equals(duty.getOfficeId()))
+                                .findFirst()
+                                .orElse(null);
+
+                        String room = office != null
+                                ? "Office " + office.getRoomNumber()
+                                : "Unknown office";
+
+                        setText(
+                                duty.getDayOfWeek() + " | " +
+                                        room + " | " +
+                                        duty.getStartTime() + " - " +
+                                        duty.getEndTime()
+                        );
+                    }
+                }
+            });
+            Button deleteDutyButton = new Button("Delete selected duty");
+            deleteDutyButton.setOnAction(e -> {
+                DutyDto selected = dutyListView.getSelectionModel().getSelectedItem();
+                if (selected == null) {
+                    showMessage("Select a duty to delete.");
+                    return;
+                }
+                try {
+                    dutyApi.deleteDuty(selected.getId());
+                    dutyListView.getItems().remove(selected);
+                    showMessage("Duty deleted.");
+                } catch (Exception ex) {
+                    showMessage("Error deleting duty: " + ex.getMessage());
+                }
+            });
+            content.getChildren().addAll(specializationLabel, addressLabel, new Label("Duties: "),dutyListView, deleteDutyButton);
             dialog.getDialogPane().setContent(content);
             dialog.setWidth(400);
             dialog.setHeight(500);
@@ -253,64 +262,7 @@ public class ClinicApplicationFX extends Application{
         }catch (Exception ex){
             showMessage("Unexpected error: " + ex.getMessage());
         }
-//            StringBuilder sb = new StringBuilder();
-//            sb.append("Doctor details:\n");
-//            sb.append("Name: ").append(doctor.getFirstName()).append(" ").append(doctor.getLastName()).append("\n");
-//            sb.append("Specialization: ").append(doctor.getSpecialization()).append("\n");
-//            sb.append("\nDuties:\n");
-//            if (doctor.getDuties() != null && !doctor.getDuties().isEmpty()) {
-//                for (var d : doctor.getDuties()) {
-//                    sb.append(" - Room ").append(d.getOffice().getRoomNumber())
-//                            .append(": ").append(d.getStartTime().toLocalTime())
-//                            .append(" - ").append(d.getEndTime().toLocalTime()).append("\n");
-//                }
-//            } else {
-//                sb.append("No duties assigned.");
-//            }
-//
-//            textArea.setText(sb.toString());
-//        } catch (Exception ex) {
-//            textArea.setText("Error: " + ex.getMessage());
-//        }
     }
-
-    //PATIENT DETAILS
-    private void showPatientDetails(long id) {
-        try {
-            PatientListDto patient = patientApi.getPatientById(id);
-
-            Dialog<ButtonType> dialog = new Dialog<>();
-            dialog.setTitle("Patient Details");
-            dialog.setHeaderText(patient.getFirstName() + " " + patient.getLastName());
-
-            VBox content = new VBox(10);
-            Label addressLabel = new Label("Address: " + patient.getAddress());
-            content.getChildren().addAll(addressLabel);
-
-            dialog.getDialogPane().setContent(content);
-            dialog.setWidth(400);
-            dialog.setHeight(250);
-
-            ButtonType deleteButton = new ButtonType("Delete patient", ButtonBar.ButtonData.OK_DONE);
-            dialog.getDialogPane().getButtonTypes().addAll(deleteButton, ButtonType.CLOSE);
-
-            dialog.showAndWait().ifPresent(btn -> {
-                if (btn == deleteButton) {
-                    try {
-                        patientApi.deletePatientById(patient.getId());
-                        loadPatients();
-                        showMessage("Patient " + patient + " deleted successfully!");
-                    } catch (Exception ex) {
-                        showMessage("Error deleting patient: " + ex.getMessage());
-                    }
-                }
-            });
-
-        } catch (Exception ex) {
-            showMessage("Unexpected error: " + ex.getMessage());
-        }
-    }
-
 
     private void addDutyOrShowError(DoctorListDto doctor, OfficeDto office, DayOfWeek day, LocalTime start, LocalTime end) {
         DutyDto duty = new DutyDto();
@@ -382,7 +334,7 @@ public class ClinicApplicationFX extends Application{
                 showMessage("Not enough doctors/offices to assign duties. Doctors=" + doctors.size() + ", Offices=" + offices.size());
                 loadDoctors();
                 loadOffices();
-                loadPatients();
+                patientsPanel.loadPatients();
                 return;
             }
 
@@ -418,14 +370,75 @@ public class ClinicApplicationFX extends Application{
 
             addDutyOrShowError(d6, o2, DayOfWeek.FRIDAY,    LocalTime.of(12, 0), LocalTime.of(14, 0));
 
+            List<PatientListDto> patients = patientApi.getPatients().stream()
+                    .sorted((a, b) -> Long.compare(a.getId(), b.getId()))
+                    .toList();
+
+            PatientListDto p1 = patients.get(0);
+            PatientListDto p2 = patients.get(1);
+            PatientListDto p3 = patients.get(2);
+            PatientListDto p4 = patients.get(3);
+
+
+            LocalDate monday    = nextDateForDay(DayOfWeek.MONDAY);
+            LocalDate tuesday   = nextDateForDay(DayOfWeek.TUESDAY);
+            LocalDate wednesday = nextDateForDay(DayOfWeek.WEDNESDAY);
+            LocalDate thursday  = nextDateForDay(DayOfWeek.THURSDAY);
+            LocalDate friday    = nextDateForDay(DayOfWeek.FRIDAY);
+
+
+            addSampleAppointment(p1, d1, monday, LocalTime.of(8, 0),  LocalTime.of(8, 15), o1);
+            addSampleAppointment(p1, d1, monday, LocalTime.of(12, 15), LocalTime.of(12, 30), o3);
+            addSampleAppointment(p1, d2, tuesday, LocalTime.of(10, 0), LocalTime.of(10, 15), o2);
+
+            addSampleAppointment(p2, d2, tuesday, LocalTime.of(10, 15), LocalTime.of(10, 30), o2);
+            addSampleAppointment(p2, d3, wednesday, LocalTime.of(12, 0),  LocalTime.of(12, 15), o3);
+            addSampleAppointment(p2, d3, wednesday, LocalTime.of(12, 15), LocalTime.of(12, 30), o3);
+
+            addSampleAppointment(p3, d4, thursday, LocalTime.of(8, 0),  LocalTime.of(8, 15), o1);
+            addSampleAppointment(p3, d4, thursday, LocalTime.of(8, 15), LocalTime.of(8, 30), o1);
+
+            addSampleAppointment(p4, d5, friday, LocalTime.of(10, 0), LocalTime.of(10, 15), o1);
+
             loadDoctors();
             loadOffices();
-            loadPatients();
+            patientsPanel.loadPatients();
             showMessage("Sample data added successfully!");
 
         }catch (Exception ex){
             showMessage("Unexpected error: " + ex.getMessage());
 
+        }
+    }
+
+    private LocalDate nextDateForDay(DayOfWeek day) {
+        LocalDate date = LocalDate.now().plusDays(1);
+        while (date.getDayOfWeek() != day) {
+            date = date.plusDays(1);
+        }
+        return date;
+    }
+
+    private void addSampleAppointment(
+            PatientListDto patient,
+            DoctorListDto doctor,
+            LocalDate date,
+            LocalTime start,
+            LocalTime end,
+            OfficeDto office
+    ) {
+        try {
+            AppointmentDto appt = new AppointmentDto();
+            appt.setPatientId(patient.getId());
+            appt.setDoctorId(doctor.getId());
+            appt.setDate(date);
+            appt.setStartTime(start);
+            appt.setEndTime(end);
+            appt.setOfficeId(office.getId());
+
+            appointmentApi.addAppointment(appt);
+        } catch (Exception ex) {
+            showMessage("Error adding appointment: " + ex.getMessage());
         }
     }
 
@@ -522,23 +535,6 @@ public class ClinicApplicationFX extends Application{
         stage.show();
     }
 
-    // DELETE SELECTED DOCTOR
-//    private void deleteSelectedDoctor(){
-//        Doctor doctor=doctorListView.getSelectionModel().getSelectedItem();
-//        if(doctor==null){
-//            showMessage("No doctor selected. Please select a doctor!");
-//            return;
-//        }
-//        try {
-//            api.deleteDoctorById(doctor.getId());
-//            loadDoctors();
-//            showMessage("Doctor " + doctor + " deleted successfully!");
-//        } catch (DoctorNotFoundException e){
-//            showMessage("Error deleting doctor: "+e.getMessage());
-//        }catch (Exception ex){
-//            showMessage("Unexpected error: " + ex.getMessage());
-//        }
-//    }
     //DELETE DOCTORS
     private void deleteAllDoctors(){
         try{
@@ -599,7 +595,7 @@ public class ClinicApplicationFX extends Application{
 
                     patientApi.addPatient(patient);
 
-                    loadPatients();
+                    patientsPanel.loadPatients();
                     showMessage("Patient added successfully!");
                     stage.close();
                 }catch (PeselDuplicationException ex){
@@ -638,36 +634,58 @@ public class ClinicApplicationFX extends Application{
             dialog.setTitle("Office Details");
             dialog.setHeaderText("Room: " + office.getRoomNumber());
             VBox content=new VBox(10);
-            TextArea dutiesArea=new TextArea();
-            dutiesArea.setWrapText(true);
-            dutiesArea.setEditable(false);
-            StringBuilder sb = new StringBuilder();
+
             List<DutyDto> duties =dutyApi.getDuties().stream().filter(d->d.getOfficeId().equals(office.getId())).toList();
-            if (!duties.isEmpty()) {
-                List<DoctorListDto> doctors=doctorApi.getDoctors();
-                for (DutyDto d : duties) {
-                    DoctorListDto doctor=doctors.stream().filter(doc->doc.getId().equals(d.getDoctorId())).findFirst().orElse(null);
-                    String doctorName = doctor != null ? doctor.getFirstName() + " " + doctor.getLastName() : "Unknown";
-                    sb.append(doctorName).append(" | ").append(d.getDayOfWeek()).append(" | ").append(d.getStartTime())
-                            .append(" - ").append(d.getEndTime()).append("\n");
+            List<DoctorListDto> doctors=doctorApi.getDoctors();
+            ListView<DutyDto> dutyListView = new ListView<>();
+            dutyListView.getItems().addAll(duties);
+            dutyListView.setCellFactory(lv -> new ListCell<>() {
+                @Override
+                protected void updateItem(DutyDto duty, boolean empty) {
+                    super.updateItem(duty, empty);
+                    if (empty || duty == null) {
+                        setText(null);
+                    } else {
+                        DoctorListDto doctor = doctors.stream()
+                                .filter(d -> d.getId().equals(duty.getDoctorId()))
+                                .findFirst()
+                                .orElse(null);
+
+                        String doctorName = doctor != null
+                                ? doctor.getFirstName() + " " + doctor.getLastName()
+                                : "Unknown";
+
+                        setText(
+                                doctorName + " | " +
+                                        duty.getDayOfWeek() + " | " +
+                                        duty.getStartTime() + " - " +
+                                        duty.getEndTime()
+                        );
+                    }
                 }
-            }else {
-                sb.append("No duties assigned.");
-            }
-//            if (office.getDuties() != null && !office.getDuties().isEmpty()) {
-//                for (var d : office.getDuties()) {
-//                    sb.append("Doctor ").append(d.getDoctor().toString())
-//                            .append(": ").append(d.getStartTime())
-//                            .append(" - ").append(d.getEndTime()).append("\n");
-//                }
-//            } else {
-//                sb.append("No duties assigned.");
-//            }
-            dutiesArea.setText(sb.toString());
+            });
+            Button deleteDutyButton = new Button("Delete selected duty");
+
+            deleteDutyButton.setOnAction(e -> {
+                DutyDto selected = dutyListView.getSelectionModel().getSelectedItem();
+                if (selected == null) {
+                    showMessage("Select a duty to delete.");
+                    return;
+                }
+
+                try {
+                    dutyApi.deleteDuty(selected.getId());
+                    dutyListView.getItems().remove(selected);
+                    showMessage("Duty deleted.");
+                } catch (Exception ex) {
+                    showMessage("Error deleting duty: " + ex.getMessage());
+                }
+            });
+            content.getChildren().addAll(new Label("Duties: "),dutyListView,deleteDutyButton);
             dialog.getDialogPane().setContent(content);
-            content.getChildren().addAll(new Label("Duties: "),dutiesArea);
             dialog.setWidth(400);
             dialog.setHeight(500);
+
             ButtonType deleteButton=new ButtonType("Delete office", ButtonBar.ButtonData.OK_DONE);
             dialog.getDialogPane().getButtonTypes().addAll(deleteButton, ButtonType.CLOSE);
             dialog.showAndWait().ifPresent(button-> {
@@ -694,11 +712,6 @@ public class ClinicApplicationFX extends Application{
     private void addOffice(){
         Stage stage=new Stage();
         stage.setTitle("Add Office");
-//        Dialog<ButtonType> dialog = new Dialog<>();
-//        dialog.setTitle("Add Office");
-//        dialog.setHeaderText("Enter office details: ");
-//        ButtonType addButton = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
-//        dialog.getDialogPane().getButtonTypes().addAll(addButton, ButtonType.CANCEL);
 
         VBox box=new VBox(10);
         box.setPadding(new Insets(10));
@@ -851,10 +864,6 @@ public class ClinicApplicationFX extends Application{
                 .filter(d->d.getDayOfWeek().equals(day))
                 .noneMatch(d-> d.getStartTime().isBefore(end) && d.getEndTime().isAfter(start));
     }
-
-
-
-
 
     // LAUNCH JAVAFX APP
     public static void main(String[] args) {

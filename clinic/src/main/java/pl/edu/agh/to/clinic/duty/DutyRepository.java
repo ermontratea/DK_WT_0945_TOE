@@ -15,4 +15,5 @@ public interface DutyRepository extends JpaRepository<Duty,Long> {
 
     boolean existsByOfficeAndDayOfWeekAndStartTimeBeforeAndEndTimeAfter(Office office, DayOfWeek dayOfWeek, LocalTime endTime, LocalTime startTime);
 
+    boolean existsByDoctorAndOfficeAndDayOfWeekAndStartTimeLessThanEqualAndEndTimeGreaterThanEqual(Doctor doctor, Office office, DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime);
 }

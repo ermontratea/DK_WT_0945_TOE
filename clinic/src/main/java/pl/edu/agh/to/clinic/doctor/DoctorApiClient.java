@@ -30,8 +30,11 @@ public class DoctorApiClient {
         HttpRequest request= HttpRequest.newBuilder(URI.create(BASE_URL)).GET().build();
 
         HttpResponse<String> response=client.send(request,HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 404) {
+            return List.of();
+        }
         if (response.statusCode() >= 400) {
-            throw new RuntimeException("Server returned error: " + response.statusCode());
+            throw new RuntimeException("Server returned error: " + response.statusCode() + " " + response.body());
         }
 
         return mapper.readValue(response.body(), new TypeReference<List<DoctorListDto>>(){});
@@ -45,6 +48,9 @@ public class DoctorApiClient {
         HttpResponse<String> response=client.send(request,HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 404) {
             throw new DoctorNotFoundException(id);
+        }
+        if (response.statusCode() >= 400) {
+            throw new RuntimeException("Server returned error: " + response.statusCode() + " " + response.body());
         }
 
         return mapper.readValue(response.body(),DoctorListDto.class);
@@ -73,8 +79,31 @@ public class DoctorApiClient {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 404) {
             throw new DoctorNotFoundException(id);
-        }else if(response.statusCode()==409){
+        }
+        if(response.statusCode()==409){
             throw new RuntimeException(response.body());
         }
+        if (response.statusCode() >= 400) {
+            throw new RuntimeException("Server returned error: " + response.statusCode() + " " + response.body());
+        }
     }
+
+    // GET DOCTOR LIST BY SPECIALIZATION
+    public List<DoctorListDto> getDoctorsBySpecialization(Specialization specialization) throws InterruptedException, IOException {
+
+        HttpRequest request = HttpRequest.newBuilder(URI.create(BASE_URL + "?specialization=" + specialization.name())).GET().build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == 404) {
+            return List.of();
+        }
+        if (response.statusCode() >= 400) {
+            throw new RuntimeException("Server returned error: " + response.statusCode() + " " + response.body());
+        }
+
+        return mapper.readValue(response.body(), new TypeReference<List<DoctorListDto>>() {});
+    }
+
+
 }

@@ -39,12 +39,22 @@ public class DoctorService {
     }
 
     /**
-     * Retrieves all doctors from the system.
-     * @return  a list of all saved doctors as DTOs
+     * Retrieves doctors from the system.
+     * If specialization is null, returns all doctors.
+     * If specialization is provided, returns doctors with given specialization.
+     *
+     * @param specialization optional specialization used to filter doctors
+     * @return  a list of saved doctors as DTOs
      */
-    public List<DoctorListDto> getDoctors() {
-        return doctorRepository.findAll()
-                .stream()
+    public List<DoctorListDto> getDoctors(Specialization specialization) {
+        List<Doctor> doctors;
+
+        if (specialization == null) {
+            doctors = doctorRepository.findAll();
+        } else {
+            doctors = doctorRepository.findBySpecialization(specialization);
+        }
+        return doctors.stream()
                 .map(DoctorListDto::new)
                 .toList();
     }
